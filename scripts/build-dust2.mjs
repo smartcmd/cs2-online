@@ -1,17 +1,17 @@
-// Offline reduction of original map geometry; no source textures ship to players.
+// Lossless packaging of original exported map geometry; no source textures ship to players.
 import fs from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { createHash } from 'node:crypto';
 import * as THREE from 'three';
 import sharp from 'sharp';
-import { MeshoptDecoder, MeshoptSimplifier } from 'meshoptimizer';
+import { MeshoptDecoder } from 'meshoptimizer';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const source = root + '.cache/dust2/assets/map-cs2/';
 const output = root + 'public/maps/';
 const gltf = JSON.parse(await fs.readFile(source + 'dust2-web.gltf'));
-await Promise.all([MeshoptDecoder.ready, MeshoptSimplifier.ready]);
+await MeshoptDecoder.ready;
 const buffers = await Promise.all(gltf.buffers.map(async b => b.uri ? new Uint8Array(await fs.readFile(source + b.uri)) : null));
 const views = gltf.bufferViews.map(v => {
   const ext = v.extensions?.EXT_meshopt_compression;
@@ -55,7 +55,6 @@ const materialColors = gltf.materials.map(m => {
   return best + 1;
 });
 
-const batches = Array.from({ length: 7 }, () => ({ positions: [], colors: [], indices: [] }));
 const materialTypes = gltf.materials.map(m => {
   const name = (m.name + ' ' + (m.extras?.vmat?.Name || '')).toLowerCase();
   if (/bark/.test(name)) return 2;
@@ -67,93 +66,120 @@ const materialTypes = gltf.materials.map(m => {
   if (/plaster|stucco|whitewash|paint/.test(name)) return 1;
   return 0;
 });
-let sourceTriangles = 0, reducedTriangles = 0;
+const transforms = [], transformIds = new Map();
+const descriptors = [], descriptorIds = new Map(), batches = new Map(), masks = [], maskIds = new Map();
+
+for (const m of gltf.materials) {
+  const textureInfo = m.pbrMetallicRoughness?.baseColorTexture;
+  const texture = gltf.textures?.[textureInfo?.index];
+  const image = texture?.extensions?.EXT_texture_webp?.source ?? texture?.source;
+  if (!['MASK', 'BLEND'].includes(m.alphaMode) || image === undefined || maskIds.has(image)) continue;
+  const alpha = await sharp(source + gltf.images[image].uri).ensureAlpha().extractChannel(3).toColourspace('b-w').raw().toBuffer({ resolveWithObject: true });
+  maskIds.set(image, masks.length); masks.push({ pixels: alpha.data, width: alpha.info.width, height: alpha.info.height });
+}
+function descriptor(material) {
+  const m = gltf.materials[material], vmat = m.extras?.vmat || {}, flags = vmat.IntParams || {};
+  const texture = gltf.textures?.[m.pbrMetallicRoughness?.baseColorTexture?.index];
+  const image = texture?.extensions?.EXT_texture_webp?.source ?? texture?.source;
+  const overlay = m.alphaMode === 'BLEND' || !!flags.F_OVERLAY || vmat.ShaderName === 'csgo_static_overlay.vfx';
+  const visible = !flags.F_DEPTH_FEATHER && !/materials\/tools\//.test(vmat.Name || '');
+  const sampler = gltf.samplers?.[texture?.sampler] || {};
+  const value = { wrapS: sampler.wrapS || 10497, wrapT: sampler.wrapT || 10497, type: materialTypes[material], mask: ['MASK', 'BLEND'].includes(m.alphaMode) ? (maskIds.get(image) ?? -1) : -1, cutoff: m.alphaCutoff ?? .5, doubleSided: !!m.doubleSided, overlay, bias: !!flags.F_DEPTH_BIAS || overlay, visible, collidable: visible && !overlay && materialTypes[material] !== 4 };
+  const key = JSON.stringify(value);
+  if (!descriptorIds.has(key)) { descriptorIds.set(key, descriptors.length); descriptors.push(value); }
+  return descriptorIds.get(key);
+}
+let sourceTriangles = 0;
 function addPrimitive(matrix, primitive) {
-  const m = gltf.materials[primitive.material], source = m?.extras?.vmat || {}, flags = source.IntParams || {};
-  if (flags.F_DEPTH_FEATHER || flags.F_OVERLAY || source.ShaderName === 'csgo_static_overlay.vfx' || /materials\/tools\//.test(source.Name || '')) return;
-  if (primitive.mode !== undefined && primitive.mode !== 4) return;
-  const type = materialTypes[primitive.material];
-  const pos = attribute(primitive.attributes.POSITION);
-  const inputIndices = primitive.indices === undefined ? null : attribute(primitive.indices), world = new Float32Array(pos.length);
-  const point = new THREE.Vector3();
+  if (primitive.mode !== undefined && primitive.mode !== 4) throw new Error('Unexpected non-triangle map primitive');
+  const material = descriptor(primitive.material), surface = descriptors[material], m = gltf.materials[primitive.material];
+  const accessor = gltf.accessors[primitive.attributes.POSITION];
+  if (accessor.componentType !== 5122) throw new Error('Preserve unsupported source position encoding before building this map');
+  const raw = views[accessor.bufferView], rawView = new DataView(raw.buffer, raw.byteOffset, raw.byteLength), stride = gltf.bufferViews[accessor.bufferView].byteStride || 6;
+  const transform = { matrix: matrix.toArray(), normalized: !!accessor.normalized }, transformKey = JSON.stringify(transform);
+  if (!transformIds.has(transformKey)) { transformIds.set(transformKey, transforms.length); transforms.push(transform); }
+  const transformId = transformIds.get(transformKey);
+  const pos = attribute(primitive.attributes.POSITION), world = new Float32Array(pos.length), point = new THREE.Vector3();
   for (let i = 0; i < pos.length; i += 3) { point.fromArray(pos, i).applyMatrix4(matrix); point.toArray(world, i); }
-  const indices = [], inside = i => world[i] > -80 && world[i] < 70 && world[i + 1] > -12 && world[i + 1] < 33 && world[i + 2] > -105 && world[i + 2] < 52;
-  for (let i = 0, count = inputIndices ? inputIndices.length : pos.length / 3; i < count; i += 3) {
-    const a = inputIndices ? inputIndices[i] : i, b = inputIndices ? inputIndices[i + 1] : i + 1, c = inputIndices ? inputIndices[i + 2] : i + 2;
-    if (inside(a * 3) && inside(b * 3) && inside(c * 3)) indices.push(a, b, c);
-  }
-  if (!indices.length) return;
-  sourceTriangles += indices.length / 3;
-  const welded = [], original = [], remapped = [], weld = new Map();
-  for (const old of indices) {
-    const p = [world[old * 3], world[old * 3 + 1], world[old * 3 + 2]].map(v => Math.round(v * 100));
-    const key = p.join(',');
-    if (!weld.has(key)) { weld.set(key, welded.length / 3); welded.push(...p.map(v => v / 100)); original.push(old); }
-    remapped.push(weld.get(key));
-  }
-  const vertices = new Float32Array(welded), scale = MeshoptSimplifier.getScale(vertices, 3);
-  const [reduced] = MeshoptSimplifier.simplify(new Uint32Array(remapped), vertices, 3, Math.min(indices.length, Math.max(6, Math.floor(indices.length * .035 / 3) * 3)), Math.min(.06, (type === 2 || type === 6 ? .025 : .12) / Math.max(1, scale)), type === 2 || type === 6 ? ['LockBorder'] : []);
-  const simplified = reduced.map(i => original[i]);
-  reducedTriangles += simplified.length / 3;
-  const batch = batches[type], remap = new Map();
-  let color = materialColors[primitive.material] - 1;
-  if (type === 4) color = /dry|dead/.test(m.name) ? 17 : 18;
-  if (type === 2 && color >= 5 && color <= 11) color = /door/.test(m.name) ? 4 : 3;
-  for (const oldIndex of simplified) {
-    if (!remap.has(oldIndex)) {
-      const index = batch.positions.length / 3; remap.set(oldIndex, index);
-      batch.positions.push(world[oldIndex * 3], world[oldIndex * 3 + 1], world[oldIndex * 3 + 2]);
-      batch.colors.push(color);
+  const ids = primitive.indices === undefined ? null : attribute(primitive.indices);
+  const uvInfo = m.pbrMetallicRoughness?.baseColorTexture;
+  const uvTransform = uvInfo?.extensions?.KHR_texture_transform || {};
+  const uv = surface.mask < 0 ? null : attribute(primitive.attributes['TEXCOORD_' + (uvTransform.texCoord ?? uvInfo.texCoord ?? 0)]);
+  const localMaps = new Map(), mirrored = matrix.determinant() < 0;
+  const count = ids ? ids.length : pos.length / 3;
+  for (let i = 0; i < count; i += 3) {
+    const face = [ids ? ids[i] : i, ids ? ids[i + 1] : i + 1, ids ? ids[i + 2] : i + 2];
+    if (mirrored) [face[1], face[2]] = [face[2], face[1]];
+    const cx = Math.floor((world[face[0]*3] + world[face[1]*3] + world[face[2]*3]) / 48), cz = Math.floor((world[face[0]*3+2] + world[face[1]*3+2] + world[face[2]*3+2]) / 48);
+    const key = `${cx},${cz}:${material}`;
+    if (!batches.has(key)) batches.set(key, { chunk: `${cx},${cz}`, material, positions: [], codes: [], transforms: [], colors: [], uvs: [], indices: [] });
+    const batch = batches.get(key);
+    if (!localMaps.has(key)) localMaps.set(key, new Map());
+    const remap = localMaps.get(key);
+    for (const old of face) {
+      if (!remap.has(old)) {
+        remap.set(old, batch.colors.length);
+        batch.positions.push(world[old*3], world[old*3+1], world[old*3+2]);
+        for(let axis=0;axis<3;axis++)batch.codes.push(rawView.getInt16((accessor.byteOffset || 0)+old*stride+axis*2,true));
+        batch.transforms.push(transformId);
+        let color = materialColors[primitive.material] - 1;
+        if (surface.type === 4) color = /dry|dead/.test(m.name) ? 17 : 18;
+        if (surface.type === 2 && color >= 5 && color <= 11) color = /door/.test(m.name) ? 4 : 3;
+        batch.colors.push(color);
+        if (uv) {
+          const x = uv[old*2] * (uvTransform.scale?.[0] ?? 1), y = uv[old*2+1] * (uvTransform.scale?.[1] ?? 1), angle = uvTransform.rotation || 0;
+          batch.uvs.push(Math.cos(angle)*x - Math.sin(angle)*y + (uvTransform.offset?.[0] || 0), Math.sin(angle)*x + Math.cos(angle)*y + (uvTransform.offset?.[1] || 0));
+        }
+      }
+      batch.indices.push(remap.get(old));
     }
-    batch.indices.push(remap.get(oldIndex));
+    sourceTriangles++;
   }
 }
 function visit(index, parent) {
-  const n = gltf.nodes[index], matrix = new THREE.Matrix4();
-  if (n.matrix) matrix.fromArray(n.matrix);
-  else matrix.compose(new THREE.Vector3().fromArray(n.translation || [0, 0, 0]), new THREE.Quaternion().fromArray(n.rotation || [0, 0, 0, 1]), new THREE.Vector3().fromArray(n.scale || [1, 1, 1]));
+  const node = gltf.nodes[index], matrix = new THREE.Matrix4();
+  if (node.matrix) matrix.fromArray(node.matrix);
+  else matrix.compose(new THREE.Vector3().fromArray(node.translation || [0,0,0]), new THREE.Quaternion().fromArray(node.rotation || [0,0,0,1]), new THREE.Vector3().fromArray(node.scale || [1,1,1]));
   matrix.premultiply(parent);
-  if (n.mesh !== undefined) for (const p of gltf.meshes[n.mesh].primitives) addPrimitive(matrix, p);
-  for (const child of n.children || []) visit(child, matrix);
+  if (node.mesh !== undefined) for (const primitive of gltf.meshes[node.mesh].primitives) addPrimitive(matrix, primitive);
+  for (const child of node.children || []) visit(child, matrix);
 }
-console.time('Map reduction');
-for (const index of gltf.scenes[gltf.scene || 0].nodes) visit(index, new THREE.Matrix4().makeRotationY(Math.PI / 2));
-const vertices = batches.reduce((n, b) => n + b.colors.length, 0), indexCount = batches.reduce((n, b) => n + b.indices.length, 0);
-const bytes = Buffer.alloc(12 + vertices * 10 + indexCount * 4);
-bytes.write('D2M1'); bytes.writeUInt32LE(vertices, 4); bytes.writeUInt32LE(indexCount, 8);
-let vertexOffset = 0, indexOffset = 0; const groups = [];
-for (let type = 0; type < batches.length; type++) {
-  const b = batches[type]; groups.push({ start: indexOffset, count: b.indices.length, materialIndex: type });
-  for (let i = 0; i < b.colors.length; i++) {
-    const offset = 12 + (vertexOffset + i) * 10;
-    for (let axis = 0; axis < 3; axis++) {
-      bytes.writeInt16LE(Math.round(b.positions[i * 3 + axis] * 100), offset + axis * 2);
-    }
-    bytes.writeUInt8(b.colors[i], offset + 9);
+console.time('Lossless map packaging');
+for (const index of gltf.scenes[gltf.scene || 0].nodes) visit(index, new THREE.Matrix4().makeRotationY(Math.PI/2));
+const ordered = [...batches.values()].sort((a,b) => a.chunk.localeCompare(b.chunk) || a.material-b.material);
+const vertices = ordered.reduce((n,b) => n+b.colors.length,0), indexCount = ordered.reduce((n,b) => n+b.indices.length,0), uvCount = ordered.reduce((n,b) => n+b.uvs.length/2,0);
+const codes = new Int16Array(vertices*3), matrixIds = new Uint16Array(vertices);
+const positions = new Float32Array(vertices*3), indices = new Uint32Array(indexCount), uvs = new Float32Array(uvCount*2), colors = new Uint8Array(vertices), groups = [];
+let v = 0, ix = 0, uvOffset = 0;
+for (const batch of ordered) {
+  groups.push({ start: ix, count: batch.indices.length, materialIndex: batch.material, chunk: batch.chunk, firstVertex: v, vertices: batch.colors.length, uvOffset: batch.uvs.length ? uvOffset : -1 });
+  codes.set(batch.codes,v*3); matrixIds.set(batch.transforms,v);
+  positions.set(batch.positions,v*3); colors.set(batch.colors,v); uvs.set(batch.uvs,uvOffset*2);
+  for(let i=0;i<batch.indices.length;i++)indices[ix+i]=batch.indices[i]+v;
+  v+=batch.colors.length; ix+=batch.indices.length; uvOffset+=batch.uvs.length/2;
+}
+// Byte-plane XOR coding changes storage only; every Float32 coordinate round-trips bit-for-bit.
+function floatBytes(values, components) {
+  const bits = new Uint32Array(values.buffer), count=values.length/components, output=Buffer.alloc(values.byteLength);
+  for(let axis=0;axis<components;axis++) {
+    let previous=0;
+    for(let i=0;i<count;i++) { const current=bits[i*components+axis], delta=current^previous; previous=current; for(let byte=0;byte<4;byte++)output[(axis*4+byte)*count+i]=(delta>>>(byte*8))&255; }
   }
-  for (let i = 0; i < b.indices.length; i++) bytes.writeUInt32LE(b.indices[i] + vertexOffset, 12 + vertices * 10 + (indexOffset + i) * 4);
-  vertexOffset += b.colors.length; indexOffset += b.indices.length;
+  return output;
 }
-await fs.mkdir(output, { recursive: true });
-// Coordinate deltas and separate attribute streams compress repeated architecture
-// without losing detail. Index deltas use zigzag varints instead of four bytes.
-const streams = Buffer.alloc(12 + vertices * 7); bytes.copy(streams, 0, 0, 12); streams.write('D2M3');
-let streamOffset = 12;
-for (let axis = 0; axis < 3; axis++) {
-  let previous = 0;
-  for (let i = 0; i < vertices; i++) { const value = bytes.readInt16LE(12 + i * 10 + axis * 2); streams.writeInt16LE(value - previous, streamOffset); streamOffset += 2; previous = value; }
+function shortBytes(values, components) {
+  const bits=new Uint16Array(values.buffer),count=values.length/components,out=Buffer.alloc(values.byteLength);
+  for(let axis=0;axis<components;axis++){let last=0;for(let i=0;i<count;i++){const value=bits[i*components+axis],delta=value^last;last=value;out[(axis*2)*count+i]=delta&255;out[(axis*2+1)*count+i]=delta>>>8;}}return out;
 }
-for (let i = 0; i < vertices; i++) streams[streamOffset++] = bytes[12 + i * 10 + 9];
-const indexBytes = []; let previousIndex = 0;
-for (let i = 0; i < indexCount; i++) {
-  const value = bytes.readUInt32LE(12 + vertices * 10 + i * 4), delta = value - previousIndex; previousIndex = value;
-  let encoded = ((delta << 1) ^ (delta >> 31)) >>> 0;
-  do { indexBytes.push((encoded & 127) | (encoded >= 128 ? 128 : 0)); encoded >>>= 7; } while (encoded);
-}
-await fs.writeFile(output + 'dust2.mesh.gz', gzipSync(Buffer.concat([streams, Buffer.from(indexBytes)]), { level: 9 }));
-await sharp(root + '.cache/dust2/assets/valve-dust2/de_dust2_radar_psd.png').resize(512, 512).webp({ quality: 65 }).toFile(output + 'dust2-radar.webp');
-const files = [];
-for (const name of ['dust2.mesh.gz', 'dust2-radar.webp', 'surface-atlas.webp']) { const content = await fs.readFile(output + name); files.push({ name, bytes: content.length, sha256: createHash('sha256').update(content).digest('hex') }); }
-const meta = { name: 'Dust II', format: 'D2M3', precision: .01, palette, groups, vertices, triangles: indexCount / 3, sourceTriangles, files };
-await fs.writeFile(output + 'dust2.json', JSON.stringify(meta) + '\n');
-console.timeEnd('Map reduction'); console.log(JSON.stringify({ sourceTriangles, reducedTriangles, vertices, files, totalMiB: files.reduce((n, f) => n + f.bytes, 0) / 1048576 }, null, 2));
+const indexBytes=[]; let last=0;
+for(const value of indices) { const delta=value-last; last=value; let encoded=((delta<<1)^(delta>>31))>>>0; do { indexBytes.push((encoded&127)|(encoded>=128?128:0)); encoded>>>=7; }while(encoded); }
+const header=Buffer.alloc(16);header.write('D2L1');header.writeUInt32LE(vertices,4);header.writeUInt32LE(indexCount,8);header.writeUInt32LE(uvCount,12);
+await fs.mkdir(output,{recursive:true});
+await fs.writeFile(output+'dust2.mesh.gz',gzipSync(Buffer.concat([header,shortBytes(codes,3),shortBytes(matrixIds,1),colors,floatBytes(uvs,2),Buffer.from(indexBytes)]),{level:9}));
+let maskOffset=0;const maskTiles=masks.map(mask=>{const tile={offset:maskOffset,width:mask.width,height:mask.height};maskOffset+=mask.pixels.length;return tile;});
+await fs.writeFile(output+'dust2-opacity.gz',gzipSync(Buffer.concat(masks.map(m=>m.pixels)),{level:9}));
+await sharp(root+'.cache/dust2/assets/valve-dust2/de_dust2_radar_psd.png').resize(512,512).webp({quality:65}).toFile(output+'dust2-radar.webp');
+const files=[];for(const name of ['dust2.mesh.gz','dust2-opacity.gz','dust2-radar.webp','surface-atlas.webp']){const content=await fs.readFile(output+name);files.push({name,bytes:content.length,...(name.endsWith('.gz')?{raw:content.readUInt32LE(content.length-4)}:{}),sha256:createHash('sha256').update(content).digest('hex')});}
+const meta={name:'Dust II',format:'D2L1',positionEncoding:'source-accessors-lossless',transforms,palette,groups,materials:descriptors,opacity:{tiles:maskTiles,count:masks.length},vertices,triangles:indexCount/3,sourceTriangles,positionSHA256:createHash('sha256').update(new Uint8Array(positions.buffer)).digest('hex'),indexSHA256:createHash('sha256').update(new Uint8Array(indices.buffer)).digest('hex'),files};
+await fs.writeFile(output+'dust2.json',JSON.stringify(meta)+'\n');
+console.timeEnd('Lossless map packaging');console.log(JSON.stringify({sourceTriangles,vertices,groups:groups.length,materials:descriptors.length,files,totalMiB:files.reduce((n,f)=>n+f.bytes,0)/1048576},null,2));

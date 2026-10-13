@@ -20,7 +20,7 @@ async function start(t, env = {}) {
       const exited = once(child, 'exit'); child.kill(); await exited;
     }
   });
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < 1500; i++) {
     const m = output.match(/http:\/\/localhost:(\d+)/);
     if (m) return { url: `http://127.0.0.1:${m[1]}`, child, output: () => output };
     if (child.exitCode !== null) throw new Error(output);
@@ -69,7 +69,7 @@ test('map transfers compressed geometry and never serves the source texture libr
   const res = await fetch(s.url + '/maps/' + file.name);
   assert.equal(res.status, 200); assert.equal(res.headers.get('content-encoding'), 'gzip');
   assert.equal(Number(res.headers.get('content-length')), file.bytes);
-  assert.equal(Buffer.from(await res.arrayBuffer()).subarray(0, 4).toString(), 'D2M3');
+  assert.equal(Buffer.from(await res.arrayBuffer()).subarray(0, 4).toString(), 'D2L1');
   assert.equal((await fetch(s.url + '/assets/map-cs2/dust2-web.gltf')).status, 404);
   for (const route of ['/dust2-world.js', '/dust2-mesh.js', '/dust2-data.js', '/bvh.js']) assert.equal((await fetch(s.url + route)).status, 200);
 });

@@ -1,13 +1,13 @@
 <!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>
 <title>CS2 网页版 联机</title>
 <style>
-/* Layout: full-bleed WebGL viewport; HUD pinned to the corners like the in-game overlay; menus are a left-anchored briefing panel over a slow flyover of the map. */
+/* Layout: full-bleed WebGL viewport; HUD pinned to the screen edges on soft black gradients like CS2's overlay; menus are square, dark panels over a slow flyover of the map. */
 :root{
-  --ground:#0d0f12; --panel:rgba(13,15,19,.62); --panel-solid:#14181e; --line:rgba(255,255,255,.12);
-  --text:#eef0ea; --dim:#9aa3ad; --ct:#86a8e4; --t:#e6a948; --money:#93d46b; --danger:#ef5350;
-  --cross:#5dff92; --sand:#dcbc84;
-  --f-num:'Saira Semi Condensed','Arial Narrow',sans-serif;
-  --f-ui:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;
+  --ground:#0b0d10; --panel:rgba(8,10,13,.6); --panel-solid:rgba(16,19,24,.96); --line:rgba(255,255,255,.1); --line2:rgba(255,255,255,.2);
+  --text:#eef0f2; --dim:#98a0a9; --ct:#7ba6ea; --t:#e4a640; --ct-deep:#2d4a7a; --t-deep:#7a531b;
+  --money:#9fd46a; --danger:#f0533f; --go:#5a9e34; --cross:#5dff92; --sand:#dcbc84;
+  --f-num:'Bahnschrift','DIN Alternate','DIN Condensed','Saira Semi Condensed','Arial Narrow',sans-serif;
+  --f-ui:'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif;
   --accent:var(--ct);
   color-scheme:dark;
 }
@@ -16,10 +16,11 @@ html,body{height:100%;margin:0}
 body{background:var(--ground);color:var(--text);font-family:var(--f-ui);overflow:hidden;user-select:none;-webkit-user-select:none}
 #view canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
 button{font:inherit;color:inherit}
-button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 /* ---------- HUD ---------- */
-#hud{position:fixed;inset:0;pointer-events:none;font-family:var(--f-num);text-shadow:0 1px 2px rgba(0,0,0,.7)}
+body.mouse-captured #view canvas{cursor:none}
+#hud{position:fixed;inset:0;pointer-events:none;font-family:var(--f-num);font-stretch:semi-condensed;text-shadow:0 1px 2px rgba(0,0,0,.65)}
 .cross{position:absolute;left:50%;top:50%}
 .cross i{position:absolute;background:var(--cross);box-shadow:0 0 0 1px rgba(0,0,0,.55)}
 .cross .l{width:7px;height:2px;left:-11px;top:-1px}.cross .r{width:7px;height:2px;left:4px;top:-1px}
@@ -29,138 +30,166 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 #hitm i:nth-child(1){transform:rotate(45deg) translateX(-10px)}#hitm i:nth-child(2){transform:rotate(-45deg) translateX(-10px)}
 #hitm i:nth-child(3){transform:rotate(45deg) translateX(10px)}#hitm i:nth-child(4){transform:rotate(-45deg) translateX(10px)}
 #hitm.hs i{background:var(--danger)}
-.topbar{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);display:flex;align-items:stretch;gap:3px}
-.side{display:flex;align-items:center;gap:6px}
-.score{min-width:52px;padding:0 10px;font-size:28px;font-weight:800;display:flex;align-items:center;justify-content:center;background:var(--panel);font-variant-numeric:tabular-nums}
-.side.ct .score{color:var(--ct);border-bottom:3px solid var(--ct)}.side.t .score{color:var(--t);border-bottom:3px solid var(--t)}
-.pips{display:flex;gap:3px;background:var(--panel);padding:5px 7px}.pip{width:16px;height:22px;background:currentColor;opacity:.85;clip-path:polygon(25% 0,75% 0,75% 35%,100% 45%,100% 100%,0 100%,0 45%,25% 35%)}
-.pip.dead{opacity:.18}.side.ct .pips{color:var(--ct)}.side.t .pips{color:var(--t)}
-.clock{background:rgba(8,10,13,.82);padding:2px 16px;font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;min-width:92px;text-align:center;line-height:1.35}
+.topbar{position:absolute;top:calc(6px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);display:flex;align-items:stretch;gap:2px}
+.side{display:flex;align-items:stretch;gap:2px}
+.score{min-width:46px;padding:0 10px;font-size:28px;font-weight:700;display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums;color:#fff}
+.side.ct .score{background:linear-gradient(180deg,#4269a8,#2b4675)}.side.t .score{background:linear-gradient(180deg,#b17a2c,#7d531a)}
+.pips{display:flex;gap:2px;padding:3px;background:rgba(8,10,13,.5)}
+.pip{width:20px;height:30px;position:relative;background:rgba(255,255,255,.07);border-bottom:2px solid currentColor}
+.pip:after{content:"";position:absolute;inset:5px 2px 0;background:currentColor;opacity:.9;clip-path:polygon(35% 0,65% 0,70% 30%,62% 42%,100% 55%,100% 100%,0 100%,0 55%,38% 42%,30% 30%)}
+.pip.dead{border-bottom-color:rgba(255,255,255,.15)}.pip.dead:after{background:#6b6f75;opacity:.35}
+.side.ct .pips{color:var(--ct)}.side.t .pips{color:var(--t)}
+.clock{background:rgba(8,10,13,.8);padding:3px 16px 4px;font-size:27px;font-weight:700;font-variant-numeric:tabular-nums;min-width:84px;text-align:center;line-height:1.2;color:#fff}
 .clock.bomb{color:var(--danger);animation:pulse 1s infinite}
-.clock small{display:block;font-size:11px;letter-spacing:.14em;color:var(--dim);font-weight:600;line-height:1}
+.clock small{display:block;font-family:var(--f-ui);font-size:11px;letter-spacing:.08em;color:var(--dim);font-weight:600;line-height:1.1}
 @keyframes pulse{50%{opacity:.45}}
-#radarWrap{position:absolute;left:14px;top:calc(14px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:6px}
-#radar{width:190px;height:190px;background:rgba(10,12,15,.55);border:1px solid var(--line);border-radius:4px}
-#money{font-size:24px;font-weight:700;color:var(--money);font-variant-numeric:tabular-nums;display:flex;gap:8px;align-items:baseline}
+#radarWrap{position:absolute;left:12px;top:calc(12px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+#radar{width:190px;height:190px;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.08)}
+#money{font-size:22px;font-weight:700;color:var(--money);font-variant-numeric:tabular-nums;display:flex;gap:8px;align-items:baseline;background:rgba(8,10,13,.55);padding:2px 10px 3px}
 #money em{font-style:normal;font-size:15px;opacity:0;transition:opacity .4s}
 #money em.on{opacity:1}
-#feed{position:absolute;right:14px;top:calc(14px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:4px;align-items:flex-end}
-.kf{background:rgba(10,12,15,.7);padding:3px 10px;font-size:15px;font-weight:600;display:flex;gap:8px;align-items:center;border:1px solid transparent;transition:opacity .5s}
-.kf.me{border-color:var(--danger)}.kf .w{color:var(--dim);font-size:13px}.kf .ct{color:var(--ct)}.kf .t{color:var(--t)}
+#feed{position:absolute;right:12px;top:calc(12px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:3px;align-items:flex-end}
+.kf{background:rgba(8,10,13,.62);padding:4px 10px;font-size:15px;font-weight:600;display:flex;gap:8px;align-items:center;border:2px solid transparent;transition:opacity .5s}
+.kf.me{border-color:rgba(240,83,63,.9);background:rgba(36,9,8,.66)}.kf .w{color:#c9ced4;font-size:13px;font-weight:500}.kf .ct{color:var(--ct)}.kf .t{color:var(--t)}
 .kf svg{width:15px;height:15px;fill:var(--text)}
-.vitals{position:absolute;left:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;gap:2px;background:var(--panel);padding:6px 14px;align-items:center}
-.vital{display:flex;align-items:center;gap:8px;min-width:96px}
-.vital svg{width:22px;height:22px;fill:var(--text);opacity:.9}
-.vital b{font-size:34px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
-.vital.low b{color:var(--danger)}
-.ammo{position:absolute;right:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:flex-end;gap:6px}
-.slots{display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:14px;color:var(--dim);font-weight:600}
-.slots span.on{color:var(--text)}.slots span i{font-style:normal;opacity:.6;margin-left:6px}
-.ammobox{background:var(--panel);padding:6px 14px;display:flex;align-items:baseline;gap:8px}
-.ammobox b{font-size:34px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.vitals{position:absolute;left:0;bottom:env(safe-area-inset-bottom,0px);display:flex;gap:28px;align-items:center;padding:12px 90px 14px 20px;background:linear-gradient(90deg,rgba(0,0,0,.62),rgba(0,0,0,.4) 60%,transparent)}
+.vital{display:flex;align-items:center;gap:9px}
+.vital svg{width:22px;height:22px;fill:#fff;opacity:.92}
+.vital b{font-size:36px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;min-width:2ch}
+.hpbar{width:64px;height:5px;background:rgba(255,255,255,.18)}.hpbar i{display:block;height:100%;width:100%;background:#fff;transition:width .2s}
+.vital.low b{color:var(--danger)}.vital.low .hpbar i{background:var(--danger)}
+.ammo{position:absolute;right:0;bottom:env(safe-area-inset-bottom,0px);display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.slots{display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:15px;color:var(--dim);font-weight:600;padding-right:14px}
+.slots span{padding:3px 10px;background:rgba(8,10,13,.42)}
+.slots span.on{color:#fff;background:rgba(8,10,13,.7);box-shadow:inset -3px 0 0 var(--accent)}.slots span i{font-style:normal;opacity:.55;margin-left:8px}
+.ammobox{padding:12px 20px 14px 90px;display:flex;align-items:baseline;gap:8px;background:linear-gradient(270deg,rgba(0,0,0,.62),rgba(0,0,0,.4) 60%,transparent)}
+.ammobox b{font-size:36px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
 .ammobox b.low{color:var(--danger)}
-.ammobox span{font-size:18px;color:var(--dim);font-variant-numeric:tabular-nums}
-#banner{position:absolute;left:50%;top:20%;transform:translateX(-50%);text-align:center;font-family:var(--f-ui);transition:opacity .4s;opacity:0;width:min(90vw,640px)}
+.ammobox span{font-size:19px;color:var(--dim);font-variant-numeric:tabular-nums}
+#banner{position:absolute;left:0;right:0;top:18%;text-align:center;font-family:var(--f-ui);transition:opacity .35s;opacity:0}
 #banner.on{opacity:1}
-#banner b{display:block;font-size:34px;font-weight:900;letter-spacing:.04em}
-#banner b{text-shadow:0 2px 6px rgba(0,0,0,.8)}
-#banner span{display:inline-block;font-size:15px;color:var(--text);margin-top:6px;background:rgba(10,12,15,.6);padding:3px 12px;text-shadow:none}
+#banner b{display:block;font-size:32px;font-weight:900;letter-spacing:.08em;color:#fff;padding:12px 0 13px;text-shadow:0 2px 6px rgba(0,0,0,.6);background:linear-gradient(90deg,transparent,rgba(8,10,13,.72) 30%,rgba(8,10,13,.72) 70%,transparent)}
+#banner[data-team=CT] b{background:linear-gradient(90deg,transparent,rgba(45,74,122,.92) 30%,rgba(45,74,122,.92) 70%,transparent)}
+#banner[data-team=T] b{background:linear-gradient(90deg,transparent,rgba(122,83,27,.92) 30%,rgba(122,83,27,.92) 70%,transparent)}
+#banner b:empty{display:none}
+#banner span{display:inline-block;font-size:15px;color:var(--text);margin-top:6px;background:rgba(8,10,13,.62);padding:4px 14px;text-shadow:none}
 #banner span:empty{display:none}
-#hint{position:absolute;left:50%;bottom:calc(120px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);font-family:var(--f-ui);font-size:14px;background:rgba(10,12,15,.6);padding:4px 12px;white-space:nowrap}
-#prog{position:absolute;left:50%;bottom:calc(160px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:280px;font-family:var(--f-ui);font-size:13px;text-align:center}
-#prog div{height:6px;background:rgba(255,255,255,.15);margin-top:5px}#prog div i{display:block;height:100%;background:var(--accent);width:0}
-#spec{position:absolute;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);font-family:var(--f-ui);background:rgba(10,12,15,.7);padding:6px 16px;font-size:15px;white-space:nowrap}
+#hint{position:absolute;left:50%;bottom:calc(120px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);font-family:var(--f-ui);font-size:14px;background:rgba(8,10,13,.62);padding:5px 14px;white-space:nowrap}
+#prog{position:absolute;left:50%;bottom:calc(160px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:300px;font-family:var(--f-ui);font-size:13px;text-align:center}
+#prog div{height:6px;background:rgba(255,255,255,.15);margin-top:6px}#prog div i{display:block;height:100%;background:var(--accent);width:0}
+#spec{position:absolute;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);font-family:var(--f-ui);background:rgba(8,10,13,.72);padding:7px 18px;font-size:15px;white-space:nowrap}
 #dmgdir{position:absolute;left:50%;top:50%;width:0;height:0}
 #dmgdir i{position:absolute;left:-90px;top:-90px;width:180px;height:180px;border-radius:50%;border-top:5px solid var(--danger);opacity:0;transition:opacity .6s}
 #hurt{position:absolute;inset:0;box-shadow:inset 0 0 160px rgba(200,20,20,.7);opacity:0;transition:opacity .5s}
 #scope{position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 50%,transparent 0 min(42vh,42vw),#000 calc(min(42vh,42vw) + 1px))}
 #scope:before,#scope:after{content:"";position:absolute;background:#000}
 #scope:before{left:0;right:0;top:50%;height:1px}#scope:after{top:0;bottom:0;left:50%;width:1px}
-#board{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(94vw,640px);background:rgba(10,12,15,.88);padding:14px 18px;font-family:var(--f-ui)}
-#board table,#overBoard table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:14px}
-#board th,#overBoard th{text-align:left;color:var(--dim);font-weight:500;font-size:12px;padding:4px 6px;letter-spacing:.08em}
-#board td,#overBoard td{padding:4px 6px;border-top:1px solid var(--line)}
-#board td.n,#board th.n,#overBoard td.n,#overBoard th.n{text-align:right}
-tr.dead td{opacity:.4}tr.me td{background:rgba(255,255,255,.06)}
-.bh{display:flex;justify-content:space-between;align-items:baseline;margin:6px 0 2px;font-weight:700;font-size:15px}
-.bh.ct{color:var(--ct)}.bh.t{color:var(--t)}
+#board{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(94vw,720px);background:rgba(10,12,16,.9);font-family:var(--f-ui);padding-bottom:8px}
+#board table,#overBoard table{width:100%;border-collapse:collapse;table-layout:fixed;font-variant-numeric:tabular-nums;font-size:14px}
+#board th,#overBoard th{text-align:left;color:var(--dim);font-weight:500;font-size:12px;padding:5px 14px;letter-spacing:.06em}
+#board td,#overBoard td{padding:6px 14px;border-top:1px solid var(--line);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#board th:nth-child(n+2),#overBoard th:nth-child(n+2){width:72px}#board th:nth-child(4),#overBoard th:nth-child(4){width:84px}
+#board td.n,#board th.n,#overBoard td.n,#overBoard th.n{text-align:right;font-family:var(--f-num);font-size:15px}
+tr.dead td{opacity:.4}tr.me td{background:rgba(255,255,255,.07)}
+.bh{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;font-weight:700;font-size:15px;color:#fff;margin-top:6px}
+.bh span:last-child{font-family:var(--f-num);font-size:24px}
+.bh.ct{background:linear-gradient(90deg,rgba(45,74,122,.95),rgba(45,74,122,.2))}.bh.t{background:linear-gradient(90deg,rgba(122,83,27,.95),rgba(122,83,27,.2))}
+.roomtag{color:var(--dim);font-size:12px;padding:10px 14px 2px}
 
 /* ---------- Overlays ---------- */
 .overlay{position:fixed;inset:0;z-index:10;overflow:auto;display:flex;padding-inline:16px;padding-block:24px}
-#menu{background:linear-gradient(90deg,rgba(8,9,11,.94) 0%,rgba(8,9,11,.78) 40%,rgba(8,9,11,.15) 75%,rgba(8,9,11,0));align-items:center;gap:48px;flex-wrap:wrap;padding-inline:max(16px,6vw)}
-.brief{min-width:0;width:min(100%,460px);display:flex;flex-direction:column;gap:18px}
-.eyebrow{font-family:var(--f-num);font-weight:600;letter-spacing:.24em;font-size:13px;color:var(--sand)}
-h1{margin:0;display:flex;align-items:flex-end;gap:14px;line-height:.8}
-h1 .cs{font-family:var(--f-num);font-weight:800;font-style:italic;font-size:clamp(84px,14vw,148px);letter-spacing:-.02em;color:var(--sand);text-shadow:4px 4px 0 rgba(0,0,0,.45)}
-h1 .web{font-weight:900;font-size:clamp(26px,4vw,38px);padding-bottom:10px;color:var(--text)}
-.lede{margin:0;color:var(--dim);line-height:1.7;font-size:15px;max-width:42ch}
+#menu{background:linear-gradient(90deg,rgba(7,8,10,.92) 0%,rgba(7,8,10,.72) 36%,rgba(7,8,10,.1) 70%,rgba(7,8,10,0)),linear-gradient(0deg,rgba(7,8,10,.7),transparent 30%);align-items:center;gap:32px;flex-wrap:wrap;padding:84px max(16px,5vw) 40px}
+.topnav{position:fixed;left:0;right:0;top:0;height:56px;display:flex;align-items:center;gap:20px;padding-inline:max(16px,5vw);background:linear-gradient(180deg,rgba(7,8,10,.92),rgba(7,8,10,.7));border-bottom:1px solid var(--line);z-index:1}
+.logo{display:flex;align-items:baseline;gap:8px;white-space:nowrap}
+.logo .cs{font-family:var(--f-num);font-stretch:semi-condensed;font-weight:800;font-style:italic;font-size:30px;letter-spacing:-.01em;color:#fff}
+.logo .web{font-weight:700;font-size:15px;color:var(--dim)}
+.navmap{font-family:var(--f-num);font-weight:600;letter-spacing:.18em;font-size:12px;color:var(--sand);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.navr{margin-left:auto;display:flex;gap:4px}
+.navbtn{background:transparent;border:0;border-bottom:2px solid transparent;padding:17px 12px 15px;cursor:pointer;font-size:14px;color:#c9ced4;white-space:nowrap}
+.navbtn:hover:not(:disabled){color:#fff;border-bottom-color:var(--accent)}.navbtn:disabled{opacity:.4;cursor:wait}
+.brief{min-width:0;width:min(100%,460px);display:flex;flex-direction:column;gap:16px;background:rgba(13,15,19,.78);border:1px solid var(--line);padding:22px 22px 20px}
+.brief>h2{margin:0;font-size:13px;letter-spacing:.2em;color:var(--dim);font-weight:700}
+.lede{margin:0;color:var(--dim);line-height:1.7;font-size:14px;max-width:46ch}
 .opt{display:flex;flex-direction:column;gap:7px}
-.opt>label,.opt>.lab{font-size:12px;letter-spacing:.12em;color:var(--dim)}
+.opt>label,.opt>.lab{font-size:12px;letter-spacing:.1em;color:var(--dim)}
 .opt output{color:var(--text);font-family:var(--f-num);font-size:14px;margin-left:6px}
-.seg{display:flex;flex-wrap:wrap;gap:4px}
-.seg button{flex:1 1 auto;background:rgba(255,255,255,.06);border:1px solid var(--line);padding:9px 12px;cursor:pointer;font-size:14px;transition:background .15s,border-color .15s}
-.seg button:hover{background:rgba(255,255,255,.12)}
-.seg button.on{background:rgba(255,255,255,.16);border-color:var(--accent);color:#fff;box-shadow:inset 0 -3px 0 var(--accent)}
+.seg{display:flex;flex-wrap:wrap;gap:2px}
+.seg button{flex:1 1 auto;background:rgba(255,255,255,.05);border:0;border-bottom:2px solid transparent;padding:10px 12px;cursor:pointer;font-size:14px;color:#c9ced4;transition:background .15s}
+.seg button:hover{background:rgba(255,255,255,.1);color:#fff}
+.seg button.on{background:rgba(255,255,255,.14);border-bottom-color:var(--accent);color:#fff}
 input[type=range]{width:100%;accent-color:var(--accent)}
-.go{margin-top:6px;background:var(--accent);color:#0b0d10;border:0;padding:15px 20px;font-size:19px;font-weight:900;letter-spacing:.2em;cursor:pointer;clip-path:polygon(0 0,100% 0,100% 70%,95% 100%,0 100%);transition:filter .15s}
+.go{margin-top:4px;background:linear-gradient(180deg,#67b13d,#4c8a2b);color:#fff;border:0;padding:14px 20px;font-size:18px;font-weight:800;letter-spacing:.24em;cursor:pointer;text-shadow:0 1px 1px rgba(0,0,0,.35);transition:filter .15s}
 .go:hover{filter:brightness(1.12)}
-.note{margin:0;color:var(--danger);font-size:14px}
-.keys{min-width:0;display:grid;grid-template-columns:auto auto;gap:7px 18px;align-content:start;font-size:13px;color:var(--dim);background:rgba(10,12,15,.5);padding:16px 18px;border:1px solid var(--line);max-width:100%}
-.keys h2{grid-column:1/-1;margin:0 0 4px;font-size:12px;letter-spacing:.16em;color:var(--sand);font-weight:700}
-kbd{font-family:var(--f-num);font-weight:700;color:var(--text);background:rgba(255,255,255,.08);border:1px solid var(--line);border-bottom-width:2px;padding:1px 7px;font-size:13px;white-space:nowrap}
+.go:disabled{filter:grayscale(.8) brightness(.6);cursor:wait}
+.note{margin:0;color:var(--danger);font-size:13px}
+.mapprog{display:flex;flex-direction:column;gap:6px;margin-top:-6px}
+.mapbar{height:4px;background:rgba(255,255,255,.1);overflow:hidden}
+.mapbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#4c8a2b,#7cc24d);transition:width .25s}
+.mapprog.done .mapbar{display:none}.mapprog.fail .mapbar i{background:var(--danger)}
+.maptxt{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--dim)}
+.maptxt b{font-family:var(--f-num);font-weight:600;color:var(--text);font-variant-numeric:tabular-nums}.mapprog.done b{display:none}
+.mapprog.fail .maptxt span{color:var(--danger)}
+.keys{min-width:0;display:grid;grid-template-columns:auto auto;gap:7px 18px;align-content:start;font-size:13px;color:var(--dim);background:rgba(13,15,19,.62);padding:18px 20px;border:1px solid var(--line);max-width:100%;align-self:center}
+.keys h2{grid-column:1/-1;margin:0 0 4px;font-size:12px;letter-spacing:.2em;color:var(--dim);font-weight:700}
+kbd{font-family:var(--f-num);font-weight:700;color:var(--text);background:rgba(255,255,255,.07);border:1px solid var(--line);border-bottom-width:2px;padding:1px 7px;font-size:13px;white-space:nowrap}
 .legal{position:absolute;right:16px;bottom:calc(12px + env(safe-area-inset-bottom,0px));margin:0;font-size:12px;color:rgba(255,255,255,.4)}
-#pause,#over{background:rgba(8,9,11,.72);align-items:center;justify-content:center}
-.card{background:var(--panel-solid);border:1px solid var(--line);padding:24px;width:min(100%,560px);display:flex;flex-direction:column;gap:14px;margin:auto}
-.card h2{margin:0;font-size:26px;font-weight:900}
-.card p{margin:0;color:var(--dim);line-height:1.6}
-.row{display:flex;gap:8px;flex-wrap:wrap}.row button{flex:1 1 140px}
-.btn2{background:rgba(255,255,255,.07);border:1px solid var(--line);padding:12px;cursor:pointer;font-size:15px}
-.btn2:hover{background:rgba(255,255,255,.13)}
-#buy{background:rgba(8,9,11,.35);align-items:center;justify-content:center}
-.buycard{background:rgba(16,19,24,.95);border:1px solid var(--line);width:min(100%,760px);padding:18px 20px;display:flex;flex-direction:column;gap:14px;margin:auto}
+#pause,#over{background:rgba(6,7,9,.7);align-items:center;justify-content:center}
+.card{background:var(--panel-solid);border:1px solid var(--line);border-top:2px solid var(--accent);padding:22px 24px;width:min(100%,560px);display:flex;flex-direction:column;gap:14px;margin:auto}
+.card h2{margin:0;font-size:22px;font-weight:800;letter-spacing:.06em}
+.card p{margin:0;color:var(--dim);line-height:1.6;font-size:14px}
+.row{display:flex;gap:4px;flex-wrap:wrap}.row button{flex:1 1 140px}
+.btn2{background:rgba(255,255,255,.07);border:1px solid var(--line);padding:11px 12px;cursor:pointer;font-size:14px;color:#d9dde2;transition:background .15s,border-color .15s}
+.btn2:hover{background:rgba(255,255,255,.13);border-color:var(--line2);color:#fff}
+#buy{background:rgba(6,7,9,.45);align-items:center;justify-content:center}
+.buycard{background:rgba(14,17,21,.95);border:1px solid var(--line);border-top:2px solid var(--accent);width:min(100%,820px);padding:18px 20px 20px;display:flex;flex-direction:column;gap:16px;margin:auto}
 .buyhead{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
-.buyhead h2{margin:0;font-size:22px}.buyhead b{font-family:var(--f-num);font-size:26px;color:var(--money)}
+.buyhead h2{margin:0;font-size:20px;letter-spacing:.12em}.buyhead b{font-family:var(--f-num);font-stretch:semi-condensed;font-size:28px;color:var(--money)}
 .buyhead>span{color:var(--dim);font-size:13px}
-.buycols{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
-.buycol h3{margin:0 0 6px;font-size:12px;letter-spacing:.14em;color:var(--dim);font-weight:500}
-.bi{width:100%;display:flex;justify-content:space-between;gap:8px;background:rgba(255,255,255,.05);border:1px solid var(--line);padding:9px 11px;margin-bottom:5px;cursor:pointer;text-align:left;font-size:14px}
-.bi:hover:not(:disabled){background:rgba(255,255,255,.12);border-color:var(--accent)}
-.bi:disabled{opacity:.35;cursor:not-allowed}.bi.own{border-color:var(--money)}
-.bi span:last-child{font-family:var(--f-num);color:var(--money);font-weight:700}
+.buycols{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.buycol h3{margin:0 0 8px;font-size:12px;letter-spacing:.16em;color:var(--dim);font-weight:600;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.bi{width:100%;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;background:rgba(255,255,255,.05);border:1px solid transparent;border-left:3px solid rgba(255,255,255,.12);padding:10px 12px;margin-bottom:4px;cursor:pointer;text-align:left;font-size:15px;transition:background .12s}
+.bi:hover:not(:disabled){background:rgba(255,255,255,.12);border-left-color:var(--accent)}
+.bi:disabled{opacity:.35;cursor:not-allowed}.bi.own{border-left-color:var(--money);background:rgba(159,212,106,.08)}
+.bi .k{font-family:var(--f-num);font-size:12px;color:var(--dim);border:1px solid var(--line2);min-width:18px;text-align:center;line-height:18px}
+.bi .p{font-family:var(--f-num);font-stretch:semi-condensed;color:var(--money);font-weight:700;font-size:16px}
+.bi.own .p{color:var(--dim);font-weight:500}
 #overBoard{max-height:46vh;overflow:auto}
 #loaderr{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding-inline:16px;text-align:center;color:var(--dim)}
-.field{box-sizing:border-box;min-width:0;background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--text);font:inherit;font-size:15px;padding:10px 12px;width:100%}
+.field{box-sizing:border-box;min-width:0;background:rgba(0,0,0,.35);border:1px solid var(--line);color:var(--text);font:inherit;font-size:15px;padding:10px 12px;width:100%}
 .field:focus{outline:none;border-color:var(--accent)}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.row2>*{min-width:0}
-.rooms{display:flex;flex-direction:column;gap:4px;max-height:150px;overflow:auto}
-.room{display:flex;justify-content:space-between;gap:10px;align-items:baseline;background:rgba(255,255,255,.04);border:1px solid var(--line);padding:7px 10px;cursor:pointer;text-align:left;font-size:13px}
-.room:hover{border-color:var(--accent)}.room b{font-family:var(--f-num);font-size:15px}.room span{color:var(--dim)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.row2>*{min-width:0}
+.rooms{display:flex;flex-direction:column;gap:2px;max-height:150px;overflow:auto}
+.room{display:flex;justify-content:space-between;gap:10px;align-items:baseline;background:rgba(255,255,255,.04);border:0;border-left:3px solid transparent;padding:8px 10px;cursor:pointer;text-align:left;font-size:13px}
+.room:hover{background:rgba(255,255,255,.09);border-left-color:var(--accent)}.room b{font-family:var(--f-num);font-size:15px}.room span{color:var(--dim)}
 .rooms .empty{margin:0;color:var(--dim);font-size:13px}
-details.newroom{border:1px solid var(--line);padding:8px 12px}
-details.newroom summary{cursor:pointer;font-size:12px;letter-spacing:.12em;color:var(--dim)}
+details.newroom{border:1px solid var(--line);padding:9px 12px;background:rgba(0,0,0,.18)}
+details.newroom summary{cursor:pointer;font-size:12px;letter-spacing:.1em;color:var(--dim)}
 details.newroom[open]{padding-bottom:12px}details.newroom .opt{margin-top:10px}
-.go:disabled{filter:grayscale(.6) brightness(.7);cursor:wait}
-#chatlog{position:absolute;left:14px;bottom:calc(76px + env(safe-area-inset-bottom,0px));width:min(420px,70vw);display:flex;flex-direction:column;gap:3px;font-family:var(--f-ui);font-size:14px}
-.cl{background:rgba(10,12,15,.55);padding:3px 9px;transition:opacity 1s;overflow-wrap:anywhere}.cl.old{opacity:0}
+#chatlog{position:absolute;left:14px;bottom:calc(84px + env(safe-area-inset-bottom,0px));width:min(420px,70vw);display:flex;flex-direction:column;gap:2px;font-family:var(--f-ui);font-size:14px}
+.cl{background:rgba(8,10,13,.5);padding:3px 9px;transition:opacity 1s;overflow-wrap:anywhere}.cl.old{opacity:0}
 .cl b{font-weight:700;margin-right:2px}.cl b.ct{color:var(--ct)}.cl b.t{color:var(--t)}.cl.sys{color:var(--dim)}
-#chatbox{position:absolute;left:14px;bottom:calc(46px + env(safe-area-inset-bottom,0px));width:min(420px,80vw);display:flex;gap:6px;align-items:center;background:rgba(10,12,15,.85);padding:6px 9px;pointer-events:auto;font-family:var(--f-ui)}
+#chatbox{position:absolute;left:14px;bottom:calc(52px + env(safe-area-inset-bottom,0px));width:min(420px,80vw);display:flex;gap:6px;align-items:center;background:rgba(8,10,13,.85);border:1px solid var(--line);padding:6px 9px;pointer-events:auto;font-family:var(--f-ui)}
 #chatbox span{font-size:12px;color:var(--accent);white-space:nowrap}#chatbox input{flex:1;min-width:0;background:transparent;border:0;color:var(--text);font:inherit;font-size:14px;outline:none}
-.roomtag{color:var(--dim);font-size:12px;margin-bottom:4px}
-.sponsor{display:flex;align-items:center;justify-content:space-between;gap:8px 14px;flex-wrap:wrap;border:1px solid var(--line);background:rgba(255,255,255,.04);padding:10px 14px;font-size:13px;color:var(--dim);text-decoration:none;line-height:1.6;transition:border-color .15s,background .15s}
-.sponsor:hover{border-color:var(--accent);background:rgba(255,255,255,.08)}
+.sponsor{display:flex;align-items:center;justify-content:space-between;gap:8px 14px;flex-wrap:wrap;border:1px solid var(--line);background:rgba(255,255,255,.03);padding:10px 14px;font-size:13px;color:var(--dim);text-decoration:none;line-height:1.6;transition:border-color .15s,background .15s}
+.sponsor:hover{border-color:var(--accent);background:rgba(255,255,255,.07)}
 .sponsor .tag{font-size:11px;letter-spacing:.12em;color:var(--dim);border:1px solid var(--line);padding:0 6px;margin-right:8px}
 .sponsor b{color:var(--text);font-weight:700}.sponsor .cta{color:var(--accent);font-weight:700;white-space:nowrap}
-@media (max-width:640px){#menu{background:rgba(8,9,11,.9)}}
-@media (max-width:640px){#radar{width:120px;height:120px}.vital b,.ammobox b{font-size:24px}.vital{min-width:70px}.score{font-size:20px;min-width:38px}.clock{font-size:20px;min-width:70px}.pip{width:9px;height:14px}.slots{display:none}.legal{position:static;margin-top:8px}}
+@media (max-width:640px){#menu{background:rgba(7,8,10,.88)}.navmap{display:none}.navbtn{padding-inline:8px}.brief{padding:16px}}
+@media (max-width:640px){#radar{width:120px;height:120px}.vital b,.ammobox b{font-size:24px}.vitals{gap:14px;padding-right:40px}.hpbar{width:40px}.ammobox{padding-left:40px}.score{font-size:20px;min-width:34px}.clock{font-size:20px;min-width:66px}.pip{width:11px;height:18px}.pip:after{inset:3px 1px 0}.slots{display:none}.legal{position:static;margin-top:8px}}
+@media (max-height:780px){.brief{gap:12px;padding-block:16px}.lede{display:none}.keys{gap:5px 18px}}
 @media (prefers-reduced-motion:reduce){.clock.bomb{animation:none}*{transition:none!important}}
-#fps{position:fixed;left:50%;top:calc(66px + env(safe-area-inset-top,0px));transform:translateX(-50%);font-family:var(--f-num);font-size:12px;color:var(--dim);pointer-events:none;font-variant-numeric:tabular-nums;text-shadow:0 1px 2px #000}
-.gseg{display:flex;flex-wrap:wrap;gap:4px}
-.gseg button{flex:1 1 auto;background:rgba(255,255,255,.06);border:1px solid var(--line);padding:8px 10px;cursor:pointer;font-size:14px}
-.gseg button:hover{background:rgba(255,255,255,.12)}
-.gseg button.on{background:rgba(255,255,255,.16);border-color:var(--accent);box-shadow:inset 0 -3px 0 var(--accent)}
-#gfx{background:rgba(8,9,11,.6);align-items:center;justify-content:center;z-index:30}
-#gfx .card{gap:12px;width:min(100%,760px)}.ggrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px 20px}.ggrid>*{min-width:0}#gfx .note2{margin:0;color:var(--t);font-size:13px;min-height:1em}
+#fps{position:fixed;left:50%;top:calc(62px + env(safe-area-inset-top,0px));transform:translateX(-50%);font-family:var(--f-num);font-size:12px;color:var(--dim);pointer-events:none;font-variant-numeric:tabular-nums;text-shadow:0 1px 2px #000}
+.gseg{display:flex;flex-wrap:wrap;gap:2px}
+.gseg button{flex:1 1 auto;background:rgba(255,255,255,.05);border:0;border-bottom:2px solid transparent;padding:9px 10px;cursor:pointer;font-size:14px;color:#c9ced4}
+.gseg button:hover{background:rgba(255,255,255,.1);color:#fff}
+.gseg button.on{background:rgba(255,255,255,.14);border-bottom-color:var(--accent);color:#fff}
+.gseg button:disabled{opacity:.4;cursor:default}
+#gfx{background:rgba(6,7,9,.6);align-items:center;justify-content:center;z-index:30}
+#gfx .card{gap:14px;width:min(100%,760px)}.ggrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px 22px}.ggrid>*{min-width:0}#gfx .note2{margin:0;color:var(--t);font-size:13px;min-height:1em}
 .gfxbtn{align-self:flex-start}
+#mapTour{position:absolute;left:24px;bottom:24px;z-index:30;padding:16px 18px;background:rgba(14,17,21,.92);border:1px solid var(--line);border-top:2px solid var(--sand);max-width:calc(100% - 48px)}
+#mapTour b{color:var(--sand);letter-spacing:.1em}#mapTour p{margin:8px 0 10px;color:var(--dim);font-size:13px}
+#tourPoints{display:flex;gap:4px;flex-wrap:wrap}
 /* touch controls */
 #touch{position:fixed;inset:0;z-index:5;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 #tLook{position:absolute;inset:0}
@@ -216,7 +245,7 @@ body.touch #fps{top:calc(50px + env(safe-area-inset-top,0px))}
   <div id="radarWrap"><canvas id="radar" width="190" height="190"></canvas><div id="money">$<span id="moneyV">800</span><em id="moneyAdd">+$300</em></div></div>
   <div id="feed"></div>
   <div class="vitals">
-    <div class="vital" id="hpBox"><svg viewBox="0 0 24 24"><path d="M9 2h6v7h7v6h-7v7H9v-7H2V9h7z"/></svg><b id="hp">100</b></div>
+    <div class="vital" id="hpBox"><svg viewBox="0 0 24 24"><path d="M9 2h6v7h7v6h-7v7H9v-7H2V9h7z"/></svg><b id="hp">100</b><div class="hpbar"><i id="hpBar"></i></div></div>
     <div class="vital"><svg viewBox="0 0 24 24"><path id="arIcon" d="M12 2 3 5.5v6.2C3 17 7 21 12 22c5-1 9-5 9-10.3V5.5z"/></svg><b id="ar">0</b></div>
   </div>
   <div class="ammo"><div class="slots" id="slots"></div><div class="ammobox"><b id="mag">12</b><span id="res">/ 24</span></div></div>
@@ -245,9 +274,13 @@ body.touch #fps{top:calc(50px + env(safe-area-inset-top,0px))}
 </div>
 <div id="rotate" hidden>请把手机横过来<small>横屏才能显示完整的操作按钮</small></div>
 <div id="menu" class="overlay">
+  <header class="topnav">
+    <div class="logo"><span class="cs">CS2</span><span class="web">网页版</span></div>
+    <span class="navmap">DE_DUST2 · 沙漠 II · 在线联机</span>
+    <nav class="navr"><button class="navbtn" id="tour" disabled>浏览地图</button><button class="navbtn" id="gfxOpen">画质与操作</button></nav>
+  </header>
   <div class="brief">
-    <div class="eyebrow">DE_DUST2 · 沙漠 II · 在线联机</div>
-    <h1><span class="cs">CS2</span><span class="web">网页版</span></h1>
+    <h2>开始游戏</h2>
     <p class="lede">和朋友进同一个房间，5v5 对战，人数不够的位置由机器人补上。房间名相同就会进到同一局。</p>
     <div class="row2">
       <div class="opt"><label for="nick">昵称</label><input class="field" id="nick" maxlength="16" placeholder="不填就随机" autocomplete="nickname"></div>
@@ -263,10 +296,8 @@ body.touch #fps{top:calc(50px + env(safe-area-inset-top,0px))}
       <div class="opt"><label for="sens">鼠标灵敏度<output id="sensV">2.0</output></label><input type="range" id="sens" min="0.5" max="6" step="0.1"></div>
       <div class="opt"><label for="vol">音量<output id="volV">70</output></label><input type="range" id="vol" min="0" max="1" step="0.05"></div>
     </div>
-    <button class="btn2 gfxbtn" id="gfxOpen">画质与操作设置</button>
     <button id="start" class="go" disabled>正在载入沙二地图…</button>
-    <button class="btn2 gfxbtn" id="tour" disabled>浏览沙二地图</button>
-    <p class="note" id="mapLoad" role="status">沙二原地图结构 · 轻量几何与程序化材质</p>
+    <div class="mapprog" id="mapProg"><div class="mapbar"><i id="mapBar"></i></div><div class="maptxt"><span id="mapLoad" role="status">正在获取地图信息…</span><b id="mapPct">0%</b></div></div>
     <p class="note" id="menuErr" hidden></p>
     <a class="sponsor" href="https://tokenflux.dev" target="_blank" rel="noopener"><span><span class="tag">推广</span>这个游戏由 <b>tokenflux.dev</b> 上 Claude Neko 分组的 <b>Opus 5.5</b>（High 推理模式）实现</span><span class="cta">前往 tokenflux.dev →</span></a>
     <p class="note" id="touchNote" hidden>这个游戏需要键盘和鼠标，请在电脑上打开。</p>
@@ -296,7 +327,7 @@ body.touch #fps{top:calc(50px + env(safe-area-inset-top,0px))}
 <div id="pause" class="overlay" hidden>
   <div class="card">
     <h2>菜单</h2>
-    <p>联机对局不会暂停，其他玩家还在继续。点击“回到游戏”重新锁定鼠标。换边会在当前回合阵亡，下回合在新阵营出生。</p>
+    <p id="pointerHint">联机对局不会暂停，其他玩家还在继续。点击“回到游戏”重新锁定鼠标。换边会在当前回合阵亡，下回合在新阵营出生。</p>
     <div class="row"><button class="go" id="resume">回到游戏</button></div>
     <div class="row"><button class="btn2" id="toCT">换到反恐精英</button><button class="btn2" id="toT">换到恐怖分子</button><button class="btn2" id="quit">离开房间</button><button class="btn2" id="gfxOpen2">画质设置</button></div>
   </div>
@@ -337,7 +368,7 @@ body.touch #fps{top:calc(50px + env(safe-area-inset-top,0px))}
     <div class="row"><button class="go" id="gfxClose">完成</button></div>
   </div>
 </div>
-<div id="mapTour" hidden style="position:absolute;left:24px;bottom:24px;z-index:30;padding:18px;background:rgba(18,23,25,.88);border:1px solid #6d756b;border-radius:6px;max-width:calc(100% - 48px)"><b style="color:#e8d3a7">DUST II · 沙漠 II</b><p style="margin:8px 0;color:#ccd0c6;font-size:13px">原地图结构 · 轻量场景</p><div style="display:flex;gap:6px;flex-wrap:wrap" id="tourPoints"></div><button class="btn2" id="tourExit" style="margin-top:12px">返回大厅</button></div>
+<div id="mapTour" hidden><b>DUST II · 沙漠 II</b><p>原地图结构 · 完整网格</p><div id="tourPoints"></div><button class="btn2" id="tourExit" style="margin-top:12px">返回大厅</button></div>
 <div id="loaderr" hidden>游戏文件加载失败，请确认服务器正在运行后刷新页面。</div>
 <script src="/three.min.js"></script>
 <script src="/bvh.js"></script>
@@ -370,18 +401,42 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.autoClear = false;
 renderer.outputEncoding = THREE.sRGBEncoding;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.03;
+// CS2-style grade on top of ACES: slightly cool shadows, warm highlights
+THREE.ShaderChunk.tonemapping_pars_fragment = THREE.ShaderChunk.tonemapping_pars_fragment.replace('vec3 CustomToneMapping( vec3 color ) { return color; }', `vec3 CustomToneMapping( vec3 color ) {
+  color = ACESFilmicToneMapping( color );
+  float luma = dot( color, vec3( .2126, .7152, .0722 ) );
+  color *= mix( vec3( .97, .99, 1.03 ), vec3( 1.03, 1.0, .95 ), smoothstep( .05, .55, luma ) );
+  return saturate( color );
+}`);
+renderer.toneMapping = THREE.CustomToneMapping;
+renderer.toneMappingExposure = .9;
+renderer.domElement.tabIndex = -1;
 $('view').appendChild(renderer.domElement);
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0xd5c4a9, 85, 230);
+scene.fog = new THREE.Fog(0xcfd2cd, 18, 360);
 const BASE_FOV = 74;
 const cam = new THREE.PerspectiveCamera(BASE_FOV, innerWidth / innerHeight, 0.05, 500);
 cam.rotation.order = 'YXZ';
 const vScene = new THREE.Scene();
 const vCam = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.01, 10);
-vScene.add(new THREE.AmbientLight(0xffffff, 0.62));
-const vSun = new THREE.DirectionalLight(0xfff0d8, 0.75); vSun.position.set(0.4, 1, 0.3); vScene.add(vSun);
+// one light balance for the world and the first-person model
+const SUN_POWER = 1.9, SKY_POWER = .5;
+const vHemi = new THREE.HemisphereLight(0xb4c6da, 0xbf9360, SKY_POWER); vScene.add(vHemi);
+const vSun = new THREE.DirectionalLight(0xffd8a4, SUN_POWER); vScene.add(vSun);
+const SUN_DIR = new THREE.Vector3(47, 85, 37).normalize(), INDOOR_SKY = .38;
+// indoor dimming shared by the map and everything standing on it (players dim less so they stay readable); filled in once the map loads
+const ENV = { coverMap: { value: null }, coverXform: { value: new THREE.Vector4() }, field: null };
+function envLit(material) {
+  material.onBeforeCompile = shader => {
+    shader.uniforms.coverMap = ENV.coverMap; shader.uniforms.coverXform = ENV.coverXform;
+    shader.vertexShader = 'varying vec3 vEnvPos;\n' + shader.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>\nvEnvPos = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    shader.fragmentShader = 'varying vec3 vEnvPos;\nuniform sampler2D coverMap;\nuniform vec4 coverXform;\n' + shader.fragmentShader.replace('#include <aomap_fragment>', `#include <aomap_fragment>
+      float envRoof = texture2D(coverMap, (vEnvPos.xz - coverXform.xy) * coverXform.zw).r * 48.0 - 12.0;
+      reflectedLight.indirectDiffuse *= mix(1.0, .5, smoothstep(.2, 1.6, envRoof - vEnvPos.y - .3));`);
+  };
+  material.customProgramCacheKey = () => 'env-lit';
+  return material;
+}
 addEventListener('resize', () => {
   renderer.setSize(innerWidth, innerHeight);
   cam.aspect = vCam.aspect = innerWidth / innerHeight;
@@ -488,10 +543,13 @@ function say(text) {
 }
 
 // ---------- models ----------
-const matCache = {};
-const mat = c => matCache[c] || (matCache[c] = new THREE.MeshLambertMaterial({ color: c }));
-function bx(g, w, h, d, x, y, z, c, rx = 0) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(c)); m.position.set(x, y, z); m.rotation.x = rx; g.add(m); return m; }
-function cyl(g, r, len, x, y, z, c) { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 10), mat(c)); m.rotation.x = Math.PI / 2; m.position.set(x, y, z); g.add(m); return m; }
+const matCache = {}, vmatCache = {};
+const mat = c => matCache[c] || (matCache[c] = envLit(new THREE.MeshStandardMaterial({ color: c, roughness: .82 })));
+// the first-person model gets its light from updateViewModel instead of the indoor map
+const vmat = c => vmatCache[c] || (vmatCache[c] = new THREE.MeshStandardMaterial({ color: c, roughness: .6 }));
+let M = mat;
+function bx(g, w, h, d, x, y, z, c, rx = 0) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), M(c)); m.position.set(x, y, z); m.rotation.x = rx; g.add(m); return m; }
+function cyl(g, r, len, x, y, z, c) { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 10), M(c)); m.rotation.x = Math.PI / 2; m.position.set(x, y, z); g.add(m); return m; }
 function buildGun(id) {
   const g = new THREE.Group(); const muzzle = new THREE.Vector3(0, 0, -.5);
   const dark = 0x1c1d1f, wood = 0x7b4a22;
@@ -528,8 +586,9 @@ function buildGun(id) {
 const flashMat = new THREE.SpriteMaterial({ map: texFlash, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true });
 const vFlashMat = new THREE.SpriteMaterial({ map: texFlash, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, transparent: true });
 function buildViewModel(id, team) {
+  M = vmat;
   const root = new THREE.Group(); const gun = buildGun(id); root.add(gun);
-  const sleeve = team === 'CT' ? 0x2e3d57 : 0x6b5a3e, glove = 0x202020;
+  const sleeve = team === 'CT' ? 0x34445e : 0x8c7552, glove = 0x1e1f21;
   const slot = W[id].slot;
   bx(root, .07, .075, .1, .005, -.085, .1, glove);
   const ra = bx(root, .09, .09, .42, .08, -.17, .33, sleeve); ra.rotation.y = -.3; ra.rotation.x = .25;
@@ -542,7 +601,7 @@ function buildViewModel(id, team) {
   }
   const fl = new THREE.Sprite(vFlashMat); fl.position.copy(gun.userData.muzzle); fl.scale.set(.22, .22, 1); fl.visible = false; fl.renderOrder = 10;
   root.add(fl); root.userData.flash = fl; root.userData.slot = slot;
-  return root;
+  M = mat; return root;
 }
 function nameSprite(text, color) {
   const c = document.createElement('canvas'); c.width = 256; c.height = 48; const g = c.getContext('2d');
@@ -551,29 +610,56 @@ function nameSprite(text, color) {
   const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false, transparent: true, sizeAttenuation: false }));
   s.scale.set(.2, .038, 1); s.position.y = 2.15; s.renderOrder = 5; return s;
 }
+const UP = new THREE.Vector3(0, 1, 0);
+function bodyPart(parent, geo, c, x, y, z) { const m = new THREE.Mesh(geo, mat(c)); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; parent.add(m); return m; }
+function limb(parent, a, b, r0, r1, c) {
+  const A = new THREE.Vector3(...a), B = new THREE.Vector3(...b);
+  const m = bodyPart(parent, new THREE.CylinderGeometry(r1, r0, A.distanceTo(B), 8), c, 0, 0, 0);
+  m.position.copy(A).add(B).multiplyScalar(.5); m.quaternion.setFromUnitVectors(UP, B.sub(A).normalize()); return m;
+}
+// proportions follow the hitboxes in sim.js: legs to 0.85 m, torso 0.85-1.45 m, head centred at 1.6 m
 function buildBotModel(team) {
-  const g = new THREE.Group();
-  const shirt = team === 'CT' ? 0x2f4466 : 0x8a7350, pants = team === 'CT' ? 0x2a2f38 : 0x5b4a33;
-  const skin = 0xc49a74, head = team === 'CT' ? 0x30363d : 0x2a2522;
-  const mk = (w, h, d, c) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(c)); m.castShadow = true; return m; };
-  const hipL = new THREE.Group(), hipR = new THREE.Group(); hipL.position.set(-.11, .85, 0); hipR.position.set(.11, .85, 0);
-  const lL = mk(.17, .85, .2, pants); lL.position.y = -.425; hipL.add(lL);
-  const lR = mk(.17, .85, .2, pants); lR.position.y = -.425; hipR.add(lR);
-  const torso = mk(.48, .62, .28, shirt); torso.position.y = 1.16;
-  const vest = mk(.5, .4, .3, team === 'CT' ? 0x3c4a3a : 0x4a3f2c); vest.position.y = 1.22;
-  const hd = mk(.26, .28, .27, skin); hd.position.y = 1.6;
-  const cap = mk(.29, .14, .3, head); cap.position.y = 1.72;
+  const ct = team === 'CT', box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+  const C = ct ? { top: 0x34445e, pants: 0x2b313b, vest: 0x24282d, gear: 0x3a4658, head: 0x3a4047, boot: 0x1b1c1e, pad: 0x222529 }
+    : { top: 0x8c7552, pants: 0x4a4233, vest: 0x5a4a31, gear: 0x6a5a3b, head: 0x2a2724, boot: 0x2a231c, pad: 0x3a3226 };
+  const skin = 0xb98a66, glove = 0x1e1f21, g = new THREE.Group();
+  const hipL = new THREE.Group(), hipR = new THREE.Group(); hipL.position.set(-.1, .86, 0); hipR.position.set(.1, .86, 0);
+  for (const hip of [hipL, hipR]) {
+    limb(hip, [0, 0, 0], [0, -.44, -.01], .085, .07, C.pants);
+    limb(hip, [0, -.44, -.01], [0, -.77, .02], .068, .056, C.pants);
+    bodyPart(hip, box(.13, .11, .1), C.pad, 0, -.45, -.06);
+    bodyPart(hip, box(.13, .1, .27), C.boot, 0, -.81, -.04);
+  }
+  bodyPart(g, box(.36, .14, .22), C.pants, 0, .91, 0);
+  bodyPart(g, box(.37, .26, .21), C.top, 0, 1.07, 0);
+  bodyPart(g, box(.44, .26, .25), C.top, 0, 1.3, 0);
+  bodyPart(g, box(.42, .34, .29), C.vest, 0, 1.22, 0);
+  for (const x of [-.12, 0, .12]) bodyPart(g, box(.1, .11, .05), C.gear, x, 1.12, -.165);
+  bodyPart(g, box(.28, .34, .1), C.gear, 0, 1.22, .19);
+  limb(g, [0, 1.42, 0], [0, 1.52, 0], .055, .05, skin);
+  bodyPart(g, new THREE.SphereGeometry(.12, 16, 12), skin, 0, 1.6, 0).scale.set(.92, 1.08, 1);
+  if (ct) {
+    bodyPart(g, new THREE.SphereGeometry(.136, 16, 8, 0, Math.PI * 2, 0, Math.PI * .56), C.head, 0, 1.615, .005);
+    bodyPart(g, box(.17, .035, .02), 0x111214, 0, 1.655, -.122);
+  } else {
+    bodyPart(g, new THREE.SphereGeometry(.125, 16, 12), C.head, 0, 1.6, 0).scale.set(.94, 1.1, 1.02);
+    bodyPart(g, box(.13, .045, .02), skin, 0, 1.625, -.119);
+  }
+  // arms aim with the upper body; hands sit on the grip and the handguard
   const upper = new THREE.Group(); upper.position.set(0, 1.38, 0);
-  const aR = mk(.11, .11, .45, shirt); aR.position.set(.2, -.12, -.2);
-  const aL = mk(.11, .11, .45, shirt); aL.position.set(-.12, -.14, -.28); aL.rotation.y = -.5;
-  const gun = new THREE.Group(); gun.position.set(.12, -.12, -.42); upper.add(aR, aL, gun);
-  g.add(hipL, hipR, torso, vest, hd, cap, upper);
+  for (const x of [-.22, .22]) bodyPart(upper, new THREE.SphereGeometry(.072, 10, 8), C.top, x, 0, 0);
+  limb(upper, [.22, -.02, 0], [.22, -.25, -.22], .06, .05, C.top); limb(upper, [.22, -.25, -.22], [.11, -.19, -.48], .05, .042, C.top);
+  bodyPart(upper, box(.07, .08, .09), glove, .11, -.19, -.5);
+  limb(upper, [-.22, -.02, 0], [-.17, -.24, -.36], .06, .05, C.top); limb(upper, [-.17, -.24, -.36], [.06, -.14, -.66], .05, .042, C.top);
+  bodyPart(upper, box(.07, .08, .09), glove, .07, -.13, -.69);
+  const gun = new THREE.Group(); gun.position.set(.1, -.1, -.42); upper.add(gun);
+  g.add(hipL, hipR, upper);
   return { g, hipL, hipR, upper, gun, gunId: null };
 }
 function setModelGun(m, id) {
   if (m.gunId === id) return; m.gunId = id;
   while (m.gun.children.length) m.gun.remove(m.gun.children[0]);
-  const gg = buildGun(id); gg.traverse(o => { if (o.isMesh) o.castShadow = true; }); m.gun.add(gg);
+  const gg = buildGun(id); gg.traverse(o => { if (o.isMesh) o.castShadow = o.receiveShadow = true; }); m.gun.add(gg);
 }
 
 // ---------- effects ----------
@@ -637,8 +723,16 @@ function clearFx() {
 // ---------- world meshes (geometry comes from the shared simulation) ----------
 const { OX, OZ, CELL, COLS, ROWS, grid, W, K } = Sim;
 let mapReady = false, mapPreview = null;
+const nextFrame = () => new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve)));
+function mapProgress(k, text) {
+  $('mapBar').style.width = (k * 100).toFixed(1) + '%'; $('mapPct').textContent = Math.floor(k * 100) + '%';
+  if (text) $('mapLoad').textContent = text;
+}
 const tourPoints = {
   'A 包点': [[21, 4.3, -61], [32, 3.4, -66]],
+  'A 小道': [[13.5001, 4.8374, -56.5594], [30, 3.5, -65]],
+  'CT 通道': [[8.0804, -1.5772, -57.1595], [25, -1, -57]],
+  'B 洞出口': [[-42.6339, 1.6072, -48.0187], [-40, 1.6, -65]],
   'B 包点': [[-38, 2.2, -58], [-43, 1.9, -70]],
   '中门': [[-9, -.5, -33], [-10, -1.5, -46]],
   'A 大道': [[40, 3, -17], [39, 1, -47]],
@@ -652,41 +746,166 @@ for (const [name, view] of Object.entries(tourPoints)) {
 $('tour').onclick = () => { if (!mapReady) return; mapPreview = tourPoints['A 包点']; $('menu').hidden = true; $('mapTour').hidden = false; };
 $('tourExit').onclick = () => { mapPreview = null; $('menu').hidden = false; $('mapTour').hidden = true; };
 (function buildWorld() {
-  const sky = new THREE.Mesh(new THREE.SphereGeometry(350, 24, 12), new THREE.ShaderMaterial({
-    side: THREE.BackSide, depthWrite: false, fog: false,
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(350, 32, 16), new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false, fog: false, uniforms: { sunDir: { value: SUN_DIR } },
     vertexShader: 'varying vec3 vSky; void main(){ vSky=normalize(position); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
-    fragmentShader: 'varying vec3 vSky; void main(){ float h=pow(max(0.0,vSky.y),0.4); vec3 c=mix(vec3(.73,.83,.9),vec3(.24,.49,.75),h); float glow=pow(max(0.0,dot(normalize(vSky),normalize(vec3(.47,.85,.37)))),32.0); c+=vec3(.18,.14,.08)*glow; gl_FragColor=vec4(c,1.0); }',
+    fragmentShader: `uniform vec3 sunDir; varying vec3 vSky;
+      float cloudHash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+      float cloudNoise(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
+        return mix(mix(cloudHash(i),cloudHash(i+vec2(1,0)),f.x),mix(cloudHash(i+vec2(0,1)),cloudHash(i+vec2(1,1)),f.x),f.y); }
+      void main(){
+        vec3 d=normalize(vSky); float h=max(d.y,0.0);
+        vec3 c=mix(vec3(.8,.82,.8),vec3(.34,.53,.76),pow(h,.6));
+        c=mix(c,vec3(.8,.79,.75),smoothstep(.03,-.06,d.y));
+        vec2 q=d.xz/(d.y+.12)*1.6+vec2(3.1,7.4), w=vec2(4.,.9);
+        float n=0.0, a=.5; for(int i=0;i<5;i++){ n+=a*cloudNoise(q*w); w*=2.1; a*=.5; }
+        float cloud=smoothstep(.5,.85,n)*smoothstep(.02,.25,d.y)*.55;
+        c=mix(c,vec3(.9,.9,.88),cloud);
+        float s=max(dot(d,sunDir),0.0);
+        c+=vec3(1.,.88,.68)*(pow(s,5.)*.1+pow(s,40.)*.22)+vec3(1.,.97,.9)*smoothstep(.9993,.9996,s);
+        gl_FragColor=vec4(min(c,1.0),1.0);
+      }`,
   })); scene.add(sky);
-  scene.add(new THREE.HemisphereLight(0xb6d3ed, 0x715b40, .62));
-  const sun = new THREE.DirectionalLight(0xffe9c8, 1.65);
-  sun.position.set(42, 85, 12); sun.target.position.set(-5, 0, -25);
+  // soft sky from above, warm sand bounce from below; the lighting map dims this indoors and in corners
+  scene.add(new THREE.HemisphereLight(0xb4c6da, 0xbf9360, SKY_POWER));
+  const sun = new THREE.DirectionalLight(0xffd8a4, SUN_POWER);
+  sun.position.copy(SUN_DIR).multiplyScalar(100).add(new THREE.Vector3(-5, 0, -25)); sun.target.position.set(-5, 0, -25);
   sun.castShadow = settings.gfx.shadow !== '0'; sun.shadow.mapSize.set(2048, 2048);
-  Object.assign(sun.shadow.camera, { left: -78, right: 78, top: 78, bottom: -78, near: 1, far: 230 });
+  Object.assign(sun.shadow.camera, { left: -74, right: 74, top: 74, bottom: -74, near: 1, far: 230 });
   sun.shadow.bias = -.00012; sun.shadow.normalBias = .035;
   scene.add(sun, sun.target); window.SUN = sun;
   fetch('/maps/dust2.json', { cache: 'no-cache' }).then(async response => {
     if (!response.ok) throw new Error('地图信息缺失');
     const meta = await response.json(), file = meta.files.find(f => f.name === 'dust2.mesh.gz');
-    const mapResponse = await fetch('/maps/dust2.mesh.gz?v=' + file.sha256.slice(0, 12));
-    if (!mapResponse.ok) throw new Error('地图模型缺失');
     const atlasFile = meta.files.find(f => f.name === 'surface-atlas.webp');
-    const [packed, atlas] = await Promise.all([
-      mapResponse.arrayBuffer(),
-      new THREE.TextureLoader().loadAsync('/maps/surface-atlas.webp?v=' + atlasFile.sha256.slice(0, 12)),
+    const opacityFile = meta.files.find(f => f.name === 'dust2-opacity.gz');
+    // downloads fill the first 85% of the bar; .gz files arrive decompressed, so progress is measured
+    // against the raw size and shown as the share of the transfer size
+    const loads = [file, opacityFile, atlasFile].map(f => ({ size: f.raw || f.bytes, bytes: f.bytes, got: 0 }));
+    const totalMB = loads.reduce((n, l) => n + l.bytes, 0) / 1048576;
+    let shownPct = -1;
+    const showDownload = () => {
+      const got = loads.reduce((n, l) => n + Math.min(1, l.got / l.size) * l.bytes, 0) / 1048576, k = got / totalMB * .85;
+      if (Math.floor(k * 100) === shownPct) return; shownPct = Math.floor(k * 100);
+      mapProgress(k, `正在下载地图 ${got.toFixed(1)} / ${totalMB.toFixed(1)} MB`);
+    };
+    const download = async (f, load, missing) => {
+      const r = await fetch('/maps/' + f.name + '?v=' + f.sha256.slice(0, 12));
+      if (!r.ok) throw new Error(missing);
+      if (!r.body) { const b = await r.arrayBuffer(); load.got = load.size; showDownload(); return b; }
+      const reader = r.body.getReader(), parts = [];
+      for (;;) {
+        const { done, value } = await reader.read(); if (done) break;
+        parts.push(value); load.got += value.length; showDownload();
+      }
+      const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0)); let at = 0;
+      for (const p of parts) { out.set(p, at); at += p.length; }
+      load.got = load.size; showDownload(); return out.buffer;
+    };
+    showDownload();
+    const [packed, opacityBuffer, atlasBuffer] = await Promise.all([
+      download(file, loads[0], '地图模型缺失'), download(opacityFile, loads[1], '地图透明轮廓加载失败'), download(atlasFile, loads[2], '地图贴图缺失'),
     ]);
+    mapProgress(.87, '正在解析地图模型…'); await nextFrame();
+    const atlasUrl = URL.createObjectURL(new Blob([atlasBuffer], { type: 'image/webp' }));
+    const atlas = await new THREE.TextureLoader().loadAsync(atlasUrl); URL.revokeObjectURL(atlasUrl);
     atlas.anisotropy = Math.min(8, ANISO);
-    const geometry = Dust2Mesh.geometry(packed, meta);
+    // average brightness of each atlas quadrant, so flat-tinted surfaces can borrow the texture's detail
+    const quadMean = (() => {
+      const c = document.createElement('canvas'); c.width = c.height = 32;
+      const ctx = c.getContext('2d'); ctx.drawImage(atlas.image, 0, 0, 32, 32);
+      const px = ctx.getImageData(0, 0, 32, 32).data, sum = [0, 0, 0, 0];
+      for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) {
+        const k = (y * 32 + x) * 4, l = .299 * (px[k] / 255) ** 2.2 + .587 * (px[k + 1] / 255) ** 2.2 + .114 * (px[k + 2] / 255) ** 2.2;
+        sum[(y < 16 ? 2 : 0) + (x < 16 ? 0 : 1)] += l / 256; // quadrant index from uv: (u >= .5) + 2 * (v >= .5)
+      }
+      return sum;
+    })();
+    // wrapped UVs need explicit gradients or every tile seam drops to the smallest mip and shows a line
+    const sampleAtlas = renderer.capabilities.isWebGL2 ? 'textureGrad(surfaceAtlas,atlasUv,dFdx(atlasTile),dFdy(atlasTile))' : 'texture2D(surfaceAtlas,atlasUv)';
+    const opacity = new Uint8Array(opacityBuffer);
+    const geometry = Dust2Mesh.geometry(packed, meta, opacity);
+    mapProgress(.9, '正在建立精确地图碰撞…'); await nextFrame();
     Sim.World.init(geometry);
-    const materials = Array.from({ length: 7 }, (_, type) => {
+    mapProgress(.96, '正在计算光照…'); await nextFrame();
+    // lighting map from a 0.5 m heightfield of the topmost surfaces:
+    // R = roof height (eroded, so wires and wall tops don't count) — anything well below it is indoors
+    // G = contact occlusion for outdoor floors, B = occluder height used to darken wall bases
+    geometry.computeBoundingBox();
+    const gb = geometry.boundingBox.clone();
+    gb.min.x = Math.max(gb.min.x, Sim.MAP.bounds.minX - 12); gb.max.x = Math.min(gb.max.x, Sim.MAP.bounds.maxX + 12);
+    gb.min.z = Math.max(gb.min.z, Sim.MAP.bounds.minZ - 12); gb.max.z = Math.min(gb.max.z, Sim.MAP.bounds.maxZ + 12);
+    const CELL = .5, coverW = Math.ceil((gb.max.x - gb.min.x) / CELL) + 1, coverH = Math.ceil((gb.max.z - gb.min.z) / CELL) + 1;
+    const top = new Float32Array(coverW * coverH), skyTop = gb.max.y + 1;
+    for (let j = 0; j < coverH; j++) for (let i = 0; i < coverW; i++) {
+      const hit = Sim.World.raycast([gb.min.x + i * CELL, skyTop, gb.min.z + j * CELL], [0, -1, 0], skyTop - gb.min.y + 1);
+      top[j * coverW + i] = hit ? hit.point.y : -99;
+    }
+    const at = (src, i, j) => src[Math.min(coverH - 1, Math.max(0, j)) * coverW + Math.min(coverW - 1, Math.max(0, i))];
+    const filter3 = (src, pick) => {
+      const out = new Float32Array(src.length);
+      for (let j = 0; j < coverH; j++) for (let i = 0; i < coverW; i++) {
+        let v = at(src, i, j);
+        for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) v = pick(v, at(src, i + di, j + dj));
+        out[j * coverW + i] = v;
+      }
+      return out;
+    };
+    const roof = filter3(top, Math.min), opened = filter3(roof, Math.max);
+    // thin features stay as occluders only when they're low (parapets, crates), not wires or poles
+    const occ = top.map((h, k) => h - opened[k] < 3 ? h : opened[k]);
+    const DIRS = Array.from({ length: 8 }, (_, k) => [Math.cos(k * Math.PI / 4), Math.sin(k * Math.PI / 4)]), RADII = [1, 2, 3, 5, 7];
+    const coverData = new Uint8Array(coverW * coverH * 4), encode = h => Math.round(Math.min(255, Math.max(0, (h + 12) / 48 * 255)));
+    for (let j = 0; j < coverH; j++) for (let i = 0; i < coverW; i++) {
+      const k = j * coverW + i, h = occ[k];
+      let blocked = 0;
+      for (const [dx, dz] of DIRS) {
+        let slope = 0;
+        for (const r of RADII) slope = Math.max(slope, (at(occ, Math.round(i + dx * r), Math.round(j + dz * r)) - h) / (r * CELL));
+        blocked += slope / Math.hypot(1, slope);
+      }
+      coverData[k * 4] = encode(roof[k]);
+      coverData[k * 4 + 1] = Math.round(255 * (1 - .75 * blocked / DIRS.length));
+      coverData[k * 4 + 2] = encode(occ[k]);
+    }
+    const coverMap = new THREE.DataTexture(coverData, coverW, coverH, THREE.RGBAFormat);
+    coverMap.magFilter = coverMap.minFilter = THREE.LinearFilter; coverMap.needsUpdate = true;
+    const coverXform = new THREE.Vector4(gb.min.x - CELL / 2, gb.min.z - CELL / 2, 1 / (coverW * CELL), 1 / (coverH * CELL));
+    ENV.coverMap.value = coverMap; ENV.coverXform.value.copy(coverXform);
+    ENV.field = { roof, w: coverW, h: coverH, x0: gb.min.x, z0: gb.min.z, cell: CELL };
+    const alphaTextures = new Map();
+    function alphaTexture(surface) {
+      const { mask, wrapS, wrapT } = surface, key = mask + ':' + wrapS + ':' + wrapT;
+      if (alphaTextures.has(key)) return alphaTextures.get(key);
+      const info = meta.opacity.tiles[mask], { width, height } = info, rgba = new Uint8Array(width * height * 4);
+      for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+        const value = opacity[info.offset + y * width + x], offset = ((height - 1 - y) * width + x) * 4;
+        rgba[offset] = rgba[offset + 1] = rgba[offset + 2] = value; rgba[offset + 3] = 255;
+      }
+      const texture = new THREE.DataTexture(rgba, width, height, THREE.RGBAFormat);
+      const wrapping = { 10497: THREE.RepeatWrapping, 33071: THREE.ClampToEdgeWrapping, 33648: THREE.MirroredRepeatWrapping };
+      texture.wrapS = wrapping[wrapS]; texture.wrapT = wrapping[wrapT];
+      texture.magFilter = texture.minFilter = THREE.LinearFilter; texture.needsUpdate = true;
+      alphaTextures.set(key, texture); return texture;
+    }
+    const materials = meta.materials.map((surface, materialIndex) => {
+      const type = surface.type;
       const material = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: type !== 4, roughness: type === 3 ? .7 : .94, metalness: type === 3 ? .12 : 0 });
+      material.visible = surface.visible;
+      material.side = surface.doubleSided ? THREE.DoubleSide : THREE.FrontSide;
+      material.transparent = surface.overlay; material.depthWrite = !surface.overlay;
+      if (surface.mask >= 0) { material.alphaMap = alphaTexture(surface); material.alphaTest = surface.overlay ? .02 : surface.cutoff; }
+      material.polygonOffset = surface.bias; material.polygonOffsetFactor = -1; material.polygonOffsetUnits = -1;
       const quadrant = type === 0 ? [0, .5] : type === 2 ? [.5, 0] : type === 5 || type === 3 ? [0, 0] : [.5, .5];
       const scale = type === 0 ? 2.6 : type === 2 ? 2.4 : type === 5 ? 5.5 : 4.5;
       material.onBeforeCompile = shader => {
         shader.uniforms.surfaceAtlas = { value: atlas };
+        shader.uniforms.coverMap = { value: coverMap }; shader.uniforms.coverXform = { value: coverXform };
         shader.vertexShader = 'varying vec3 vSurface;\n' + shader.vertexShader;
         shader.vertexShader = shader.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nvSurface = position;');
         shader.fragmentShader = `varying vec3 vSurface;
-          uniform sampler2D surfaceAtlas;
+          uniform sampler2D surfaceAtlas, coverMap;
+          uniform vec4 coverXform;
           vec3 surfaceBump(vec3 p, vec3 n, float height){
             vec3 sx=dFdx(p), sy=dFdy(p), r1=cross(sy,n), r2=cross(n,sx);
             float determinant=dot(sx,r1);
@@ -695,24 +914,52 @@ $('tourExit').onclick = () => { mapPreview = null; $('menu').hidden = false; $('
           }
         ` + shader.fragmentShader;
         shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
-          vec3 surfaceNormal = abs(normalize(cross(dFdx(vSurface), dFdy(vSurface))));
+          vec3 faceNormal = normalize(cross(dFdx(vSurface), dFdy(vSurface)));
+          if (dot(faceNormal, cameraPosition - vSurface) < 0.0) faceNormal = -faceNormal;
+          vec3 coverProbe = vSurface + faceNormal * .75;
+          vec4 lightCell = texture2D(coverMap, (coverProbe.xz - coverXform.xy) * coverXform.zw);
+          float indoor = smoothstep(.2, 1.6, lightCell.r * 48.0 - 12.0 - coverProbe.y);
+          float wallBase = smoothstep(-.1, 1.8, vSurface.y - (lightCell.b * 48.0 - 12.0));
+          float contact = faceNormal.y > .6 ? lightCell.g : mix(1.0, mix(.45, 1.0, wallBase), smoothstep(.5, .2, abs(faceNormal.y)));
+          float skyLight = mix(contact, ${INDOOR_SKY}, indoor);
+          // warm bounce off the sunlit ground onto faces turned away from the sun
+          float bounce = (1.0 - indoor) * max(0.0, -dot(normalize(faceNormal.xz + 1e-4), normalize(vec2(.79, .62)))) * (1.0 - abs(faceNormal.y));
+          vec3 surfaceNormal = abs(faceNormal);
           vec2 surfaceUv = surfaceNormal.y > .7 ? vSurface.xz : (surfaceNormal.x > surfaceNormal.z ? vSurface.zy : vSurface.xy);
+          vec2 atlasTile = surfaceUv / ${scale.toFixed(1)} * .492;
           vec2 atlasUv = vec2(${quadrant[0].toFixed(1)},${quadrant[1].toFixed(1)}) + .004 + fract(surfaceUv / ${scale.toFixed(1)}) * .492;
-          vec3 surfaceSample = pow(texture2D(surfaceAtlas,atlasUv).rgb,vec3(2.2));
+          vec3 surfaceSample = pow(${sampleAtlas}.rgb,vec3(2.2));
           float surfaceHeight = dot(surfaceSample,vec3(.299,.587,.114));
           ${type === 2 ? "surfaceSample *= 2.6;" : ""}
           float weather = .92 + .08*sin(vSurface.x*.7+sin(vSurface.z*.4))*sin(vSurface.y*1.3);
-          ${type === 4 ? 'diffuseColor.rgb *= weather;' : type === 3 || type === 6 ? 'diffuseColor.rgb *= (.55 + surfaceHeight * 1.0) * weather;' : 'diffuseColor.rgb = surfaceSample * mix(vec3(1.0), diffuseColor.rgb * 1.5, .28) * weather;'}
+          ${type === 4 ? 'diffuseColor.rgb *= weather;' : type === 3 || type === 6 ? 'diffuseColor.rgb *= mix(1.0, surfaceHeight / ' + quadMean[(quadrant[0] ? 1 : 0) + (quadrant[1] ? 2 : 0)].toFixed(3) + ', ' + (type === 3 ? '.75' : '.9') + ') * weather;' : 'diffuseColor.rgb = surfaceSample * mix(vec3(1.0), diffuseColor.rgb * 1.5, .28) * weather;'}
         `);
+        shader.fragmentShader = shader.fragmentShader.replace('#include <aomap_fragment>', '#include <aomap_fragment>\nreflectedLight.indirectDiffuse = reflectedLight.indirectDiffuse * skyLight + material.diffuseColor * vec3(.38, .27, .16) * bounce * mix(.5, 1.0, wallBase);');
         shader.fragmentShader = shader.fragmentShader.replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
           ${type === 4 ? '' : 'normal=surfaceBump(-vViewPosition,normal,surfaceHeight*' + (type === 0 ? '.012' : type === 2 ? '.006' : '.003') + ');'}
         `);
       };
-      material.customProgramCacheKey = () => 'dust2-weathered-atlas-' + type;
+      material.customProgramCacheKey = () => 'dust2-lit-atlas-' + materialIndex;
       return material;
     });
-    const map = new THREE.Mesh(geometry, materials); map.name = 'Dust II';
-    map.castShadow = map.receiveShadow = true; scene.add(map);
+    const map = new THREE.Group(); map.name = 'Dust II';
+    const chunks = new Map();
+    for (const group of meta.groups) {
+      if (!chunks.has(group.chunk)) chunks.set(group.chunk, []);
+      chunks.get(group.chunk).push(group);
+    }
+    for (const [name, groups] of chunks) {
+      const first = groups[0].start, last = groups[groups.length - 1], part = new THREE.BufferGeometry();
+      for (const [name, attribute] of Object.entries(geometry.attributes)) part.setAttribute(name, attribute);
+      const index = geometry.index.array.subarray(first, last.start + last.count); part.setIndex(new THREE.BufferAttribute(index, 1));
+      for (const group of groups) part.addGroup(group.start - first, group.count, group.materialIndex);
+      const box = new THREE.Box3(), point = new THREE.Vector3();
+      for (const vertex of index) box.expandByPoint(point.fromBufferAttribute(geometry.attributes.position, vertex));
+      part.boundingBox = box; part.boundingSphere = box.getBoundingSphere(new THREE.Sphere());
+      const mesh = new THREE.Mesh(part, materials); mesh.name = 'Dust II region ' + name;
+      mesh.castShadow = mesh.receiveShadow = true; map.add(mesh);
+    }
+    scene.add(map);
     for (const [name, site] of Object.entries(Sim.MAP.sites)) {
       const texture = canvasTex(128, (ctx, size) => {
         ctx.clearRect(0, 0, size, size); ctx.strokeStyle = '#c4532c'; ctx.lineWidth = 5;
@@ -725,10 +972,11 @@ $('tourExit').onclick = () => { mapPreview = null; $('menu').hidden = false; $('
     const desert = new THREE.Mesh(new THREE.PlaneGeometry(450, 450), new THREE.MeshLambertMaterial({ color: 0xbfa16c }));
     desert.rotation.x = -Math.PI / 2; desert.position.y = -8.1; desert.receiveShadow = true; scene.add(desert);
     mapReady = true; $('start').disabled = false; $('start').textContent = '进入沙二'; $('tour').disabled = false;
-    $('mapLoad').textContent = `沙二原地图结构 · 地图资源 ${(meta.files.reduce((n, f) => n + f.bytes, 0) / 1024).toFixed(0)} KB`;
+    mapProgress(1, `沙二原地图结构 · 地图资源 ${(meta.files.reduce((n, f) => n + f.bytes, 0) / 1048576).toFixed(1)} MiB`);
+    $('mapProg').classList.add('done');
   }).catch(error => {
     console.error('Dust II load failed', error);
-    $('mapLoad').textContent = '地图加载失败，请检查服务后刷新页面。';
+    $('mapLoad').textContent = '地图加载失败，请检查服务后刷新页面。'; $('mapProg').classList.add('fail');
     $('start').disabled = true; $('start').textContent = '地图资源未就绪';
   });
 })();
@@ -957,7 +1205,7 @@ function syncItems() {
   const live = new Set();
   for (const [id, wid, x, y, z, yaw] of latest.it) {
     live.add(id); let m = itemMeshes.get(id);
-    if (!m) { m = buildGun(wid); m.traverse(o => { if (o.isMesh) o.castShadow = true; }); m.rotation.set(0, yaw + Math.PI / 2, Math.PI / 2); m.position.set(x, y, z); scene.add(m); itemMeshes.set(id, m); }
+    if (!m) { m = buildGun(wid); m.traverse(o => { if (o.isMesh) o.castShadow = o.receiveShadow = true; }); m.rotation.set(0, yaw + Math.PI / 2, Math.PI / 2); m.position.set(x, y, z); scene.add(m); itemMeshes.set(id, m); }
     m.userData.to = [x, y, z];
   }
   for (const [id, m] of itemMeshes) if (!live.has(id)) { scene.remove(m); itemMeshes.delete(id); }
@@ -1009,7 +1257,7 @@ function handleEvent(e) {
         clearFx(); $('over').hidden = true;
         banner(e.n === 1 ? '手枪局' : `第 ${e.n} 回合`, '冻结时间 · 按 B 购买装备', 2.5);
         if (e.carrier === myId) setTimeout(() => banner('你携带着炸弹', '按 5 切出 C4，在包点按住左键安放', 3.5), 2600);
-        if (!document.pointerLockElement && !noLock && inGame) $('pause').hidden = false;
+        if (!pointerCaptured() && !touchControlsActive && inGame) $('pause').hidden = false;
       } else if (e.k === 'live') { banner('', '', 0); if (Math.random() < .5) say(pick(['Go go go', 'Lets move out', 'Stick together team'])); }
       else if (e.k === 'end') { banner(`${TEAM_CN[e.win]} 获胜`, WHY[e.reason], 5, e.win); say(e.win === 'CT' ? 'Counter-Terrorists win' : 'Terrorists win'); }
       break;
@@ -1025,7 +1273,7 @@ const fmt = s => { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':
 let bannerUntil = 0;
 function banner(t, s, dur, team) {
   $('bannerT').textContent = t; $('bannerS').textContent = s || '';
-  $('bannerT').style.color = team ? `var(--${team.toLowerCase()})` : '';
+  if (team) $('banner').dataset.team = team; else delete $('banner').dataset.team;
   $('banner').classList.toggle('on', !!t); bannerUntil = cnow() + (dur || 2);
 }
 function flashEl(el, v) { el.style.transition = 'none'; el.style.opacity = v; void el.offsetWidth; el.style.transition = ''; el.style.opacity = 0; }
@@ -1077,6 +1325,7 @@ function updateHud() {
   const v = viewer();
   const hp = v ? v.arr[9] : P.hp, ar = v ? v.arr[10] : P.armor;
   setT('hp', String(Math.max(0, hp))); setT('ar', String(ar));
+  if (hc.hpw !== hp) { hc.hpw = hp; $('hpBar').style.width = clamp(hp, 0, 100) + '%'; }
   const low = hp <= 25; if (hc.low !== low) { hc.low = low; $('hpBox').classList.toggle('low', low); }
   const w = P.alive ? P.weapons[P.slot] : null;
   if (v) { setT('mag', v.wid ? W[v.wid].name : '—'); setT('res', ''); }
@@ -1167,12 +1416,13 @@ function renderBuy() {
   if (!latest) return;
   $('buyMoney').textContent = P.money;
   const left = latest.ph === 'freeze' ? 25 + latest.ft - sinceSnap() : 25 - latest.el - sinceSnap();
-  $('buyTime').textContent = `购买时间剩余 ${Math.max(0, Math.ceil(left))} 秒 · 按 B 或点空白处关闭`;
+  $('buyTime').textContent = `购买时间剩余 ${Math.max(0, Math.ceil(left))} 秒 · 数字键快速购买 · B 关闭`;
+  let hot = 0;
   const html = buyList().map(([cat, ids]) => `<div class="buycol"><h3>${cat}</h3>${ids.map(id => {
     let name, price, own = false;
     if (Sim.GEAR[id]) { [name, price] = Sim.GEAR[id]; if (id === 'vesthelm' && P.armor >= 100 && !P.helmet) price = 350; own = id === 'kit' ? P.kit : id === 'vest' ? P.armor >= 100 : P.armor >= 100 && P.helmet; }
     else { name = W[id].name; price = W[id].price; own = !!(P.weapons[W[id].slot] && P.weapons[W[id].slot].id === id); }
-    return `<button class="bi ${own ? 'own' : ''}" data-id="${id}" ${(!own && P.money >= price) ? '' : 'disabled'}><span>${name}</span><span>$${price}</span></button>`;
+    return `<button class="bi ${own ? 'own' : ''}" data-id="${id}" ${(!own && P.money >= price) ? '' : 'disabled'}><span class="k">${++hot}</span><span>${name}</span><span class="p">${own ? '已拥有' : '$' + price}</span></button>`;
   }).join('')}</div>`).join('');
   if ($('buyCols')._h !== html) { $('buyCols')._h = html; $('buyCols').innerHTML = html; }
 }
@@ -1192,7 +1442,7 @@ function openChat(team) {
   chatTeam = team; for (const k in keys) keys[k] = false; mouse.left = false;
   $('chatMode').textContent = team ? '队伍' : '全体'; $('chatbox').hidden = false; $('chatIn').value = ''; $('chatIn').focus();
 }
-function closeChat() { $('chatbox').hidden = true; $('chatIn').blur(); }
+function closeChat() { $('chatbox').hidden = true; $('chatIn').blur(); if (inGame && !pointerCaptured() && !touchControlsActive) showPointerPrompt(); }
 $('chatIn').addEventListener('keydown', e => {
   e.stopPropagation();
   if (e.key === 'Enter') { const t = $('chatIn').value.trim(); if (t) sendRaw({ t: 'chat', text: t, team: chatTeam }); closeChat(); }
@@ -1210,24 +1460,47 @@ function addChat(m) {
 }
 
 // ---------- input ----------
-let noLock = false;
+let touchControlsActive = false, lockPending = false, captureWanted = false;
+const pointerCaptured = () => document.pointerLockElement === renderer.domElement;
+function clearInput() { for (const k in keys) keys[k] = false; mouse.left = false; }
+function showPointerPrompt(failed = false) {
+  clearInput();
+  if (!inGame || !$('buy').hidden || !$('over').hidden || chatOpen()) return;
+  $('pause').hidden = false;
+  $('pointerHint').textContent = failed ? '鼠标捕获失败，请点击“回到游戏”重试。允许浏览器捕获鼠标后才能继续瞄准。' : '鼠标已释放。点击“回到游戏”捕获鼠标并继续。联机对局不会暂停。';
+}
 function lockPointer() {
-  if (noLock) { $('pause').hidden = true; return; }
-  try { const r = renderer.domElement.requestPointerLock(); if (r && r.catch) r.catch(() => { noLock = true; $('pause').hidden = true; }); } catch (e) { noLock = true; $('pause').hidden = true; }
+  clearInput();
+  if (touchControlsActive || pointerCaptured()) { $('pause').hidden = true; return; }
+  if (lockPending) return;
+  lockPending = true; captureWanted = true;
+  const failed = error => { console.warn('Pointer capture rejected:', error && error.name, error && error.message); lockPending = false; if (!pointerCaptured()) { captureWanted = false; showPointerPrompt(true); } };
+  try {
+    renderer.domElement.focus({ preventScroll: true });
+    const request = renderer.domElement.requestPointerLock();
+    if (request && request.then) request.then(() => { lockPending = false; }, failed);
+  } catch (error) { failed(error); }
 }
 document.addEventListener('pointerlockchange', () => {
-  if (document.pointerLockElement) { $('pause').hidden = true; return; }
-  if (inGame && $('buy').hidden && $('over').hidden) { $('pause').hidden = false; mouse.left = false; }
+  lockPending = false; clearInput();
+  document.body.classList.toggle('mouse-captured', pointerCaptured());
+  if (pointerCaptured()) {
+    if (!captureWanted || document.hidden || !document.hasFocus()) { document.exitPointerLock(); showPointerPrompt(); return; }
+    $('pause').hidden = true;
+  } else { captureWanted = false; if (!touchControlsActive) showPointerPrompt(); }
 });
-document.addEventListener('pointerlockerror', () => { noLock = true; $('pause').hidden = true; });
-const looking = () => inGame && $('pause').hidden && $('buy').hidden && $('over').hidden && !chatOpen() && (document.pointerLockElement || noLock);
+document.addEventListener('pointerlockerror', () => {
+  lockPending = false;
+  if (!pointerCaptured()) showPointerPrompt(true);
+});
+const looking = () => inGame && !document.hidden && $('pause').hidden && $('buy').hidden && $('over').hidden && !chatOpen() && (pointerCaptured() || touchControlsActive);
 addEventListener('keydown', e => {
   if (!inGame || chatOpen()) return;
   if (e.code === 'Tab' || e.code === 'Space') e.preventDefault();
   if (e.code === 'Escape' && !$('buy').hidden) { closeBuy(); return; }
   if (e.code === 'Escape' && $('over').hidden) {
     e.preventDefault();
-    if (!$('pause').hidden) { if (noLock) lockPointer(); }
+    if (!$('pause').hidden) { if (touchControlsActive) lockPointer(); }
     else {
       $('pause').hidden = false; mouse.left = false; for (const k in keys) keys[k] = false;
       if (document.pointerLockElement) document.exitPointerLock();
@@ -1239,7 +1512,12 @@ addEventListener('keydown', e => {
   if (e.code === 'Enter' || e.code === 'KeyY') { e.preventDefault(); openChat(false); return; }
   if (e.code === 'KeyU') { e.preventDefault(); openChat(true); return; }
   if (e.code === 'KeyB') { $('buy').hidden ? openBuy() : closeBuy(); return; }
-  if (!$('buy').hidden || !P.alive) return;
+  if (!$('buy').hidden) {
+    const n = /^Digit([1-9])$/.exec(e.code), b = n && $('buyCols').querySelectorAll('.bi')[n[1] - 1];
+    if (b && !b.disabled) { sendAction('buy', b.dataset.id); sfx.buy(); }
+    return;
+  }
+  if (!P.alive) return;
   const slotKey = { Digit1: 1, Digit2: 2, Digit3: 3, Digit5: 5 }[e.code];
   if (slotKey) localSlot(slotKey);
   else if (e.code === 'KeyQ') { const s = P.weapons[P.lastSlot] ? P.lastSlot : (P.weapons[1] ? 1 : 2); localSlot(s); }
@@ -1248,10 +1526,16 @@ addEventListener('keydown', e => {
   else if (e.code === 'KeyE') sendAction('use');
 });
 addEventListener('keyup', e => { keys[e.code] = false; });
-addEventListener('blur', () => { for (const k in keys) keys[k] = false; mouse.left = false; });
+function releasePointer() {
+  captureWanted = false; lockPending = false; clearInput();
+  if (pointerCaptured()) document.exitPointerLock();
+  if (inGame) showPointerPrompt();
+}
+addEventListener('blur', releasePointer);
+document.addEventListener('visibilitychange', () => { if (document.hidden) releasePointer(); });
 renderer.domElement.addEventListener('mousedown', e => {
   if (!inGame) return;
-  if (!document.pointerLockElement && !noLock) { lockPointer(); return; }
+  if (!pointerCaptured()) { if (!touchControlsActive) lockPointer(); return; }
   if (!looking()) return;
   if (!P.alive) { if (e.button === 0) nextSpec(); return; }
   if (e.button === 0) mouse.left = true;
@@ -1260,7 +1544,7 @@ renderer.domElement.addEventListener('mousedown', e => {
 addEventListener('mouseup', e => { if (e.button === 0) mouse.left = false; });
 addEventListener('contextmenu', e => e.preventDefault());
 addEventListener('mousemove', e => {
-  if (!looking() || !P.alive) return;
+  if (!pointerCaptured() || !looking() || !P.alive) return;
   const s = settings.sens * .022 * DEG * (cam.fov / BASE_FOV);
   P.yaw -= e.movementX * s; P.pitch = clamp(P.pitch - e.movementY * s, -89 * DEG, 89 * DEG);
   vmState.swayX = clamp(vmState.swayX - e.movementX * .00012, -.02, .02); vmState.swayY = clamp(vmState.swayY + e.movementY * .00012, -.02, .02);
@@ -1292,9 +1576,21 @@ function updateCamera(dt) {
     else { cam.position.set(P.pos.x, cam.position.y + (P.pos.y + 3 - cam.position.y) * Math.min(1, dt * 2), P.pos.z); cam.rotation.x += (-.5 - cam.rotation.x) * Math.min(1, dt * 2); }
   }
 }
+const vLight = { sun: 1, sky: 1 }, vInv = new THREE.Quaternion();
 function updateViewModel(dt) {
   const show = P.alive && zoomLevel === 0 && vm;
   if (!vm) return; vm.visible = !!show; if (!show) return;
+  // the first-person model lives in its own scene, so bring the light at the eye over to it
+  const eye = cam.position, f = ENV.field;
+  let sky = 1;
+  if (f) {
+    const i = Math.round((eye.x - f.x0) / f.cell), j = Math.round((eye.z - f.z0) / f.cell);
+    if (i >= 0 && j >= 0 && i < f.w && j < f.h) { const t = clamp((f.roof[j * f.w + i] - eye.y + .2) / 1.4, 0, 1); sky = 1 - t * t * (3 - 2 * t) * (1 - INDOOR_SKY); }
+  }
+  const sunlit = Sim.World.raycast([eye.x, eye.y, eye.z], [SUN_DIR.x, SUN_DIR.y, SUN_DIR.z], 200) ? 0 : 1;
+  vLight.sun += (sunlit - vLight.sun) * Math.min(1, dt * 8); vLight.sky += (sky - vLight.sky) * Math.min(1, dt * 4);
+  vSun.intensity = SUN_POWER * vLight.sun; vHemi.intensity = SKY_POWER * vLight.sky;
+  vInv.copy(cam.quaternion).invert(); vSun.position.copy(SUN_DIR).applyQuaternion(vInv); vHemi.position.copy(UP).applyQuaternion(vInv);
   const slot = vm.userData.slot, w = P.weapons[P.slot];
   const base = slot === 2 ? [.2, -.21, -.52] : slot === 3 ? [.24, -.24, -.45] : slot === 5 ? [.14, -.26, -.5] : w && w.def.scope ? [.26, -.27, -.6] : [.26, -.25, -.56];
   const sp = Math.hypot(P.vel.x, P.vel.z);
@@ -1362,10 +1658,11 @@ $('start').addEventListener('click', () => {
 function enterGame(m) {
   myId = m.id; settings.room = m.room; inGame = true;
   $('menu').hidden = true; $('hud').hidden = false; $('start').disabled = false; $('feed').innerHTML = ''; $('chatlog').innerHTML = '';
-  if (!document.pointerLockElement && !noLock) $('pause').hidden = false;
+  if (!pointerCaptured() && !touchControlsActive) $('pause').hidden = false;
   addChat({ sys: 1, text: `已进入房间 ${m.room}（${({ easy: '简单', normal: '普通', hard: '困难' })[m.diff]}机器人 · 先赢 ${m.target} 局）。按 Enter 聊天，U 队伍聊天。` });
 }
 function leaveToMenu(msg) {
+  captureWanted = false; lockPending = false;
   inGame = false; if (ws) { const w = ws; ws = null; w.onclose = null; w.close(); }
   clearInterval(buyTimer); for (const k in keys) keys[k] = false; mouse.left = false;
   clearWorldState(); closeChat();
@@ -1441,7 +1738,8 @@ const TOUCH_API = {
     $('fps').hidden = G.fps !== '1';
     const t = touchOn();
     document.body.classList.toggle('touch', t);
-    if (t) noLock = true;
+    touchControlsActive = t;
+    if (inGame && !t && !pointerCaptured()) showPointerPrompt();
     $('touchNote').hidden = !t && !(IS_TOUCH && G.touch === 'off');
     $('touchNote').textContent = t ? '已开启触屏操作：左手拖动摇杆移动，右手在屏幕上滑动瞄准。建议横屏并全屏游玩。' : '触屏操作已关闭，需要键盘和鼠标。';
   }

@@ -44,11 +44,11 @@ test('a stale socket close or message cannot affect a newer connection', () => {
   sockets[1].onopen(); assert.equal(sent.length, 1);
 });
 
-test('Escape opens and resumes pause when pointer lock is unavailable', () => {
+test('Escape resumes touch mode but does not recapture a released desktop pointer', () => {
   const handlers = {}, elements = { pause: { hidden: true }, buy: { hidden: true }, over: { hidden: true } };
   const keys = { KeyW: true }, mouse = { left: true };
   const ctx = run(section("\naddEventListener('keydown', e =>", "\naddEventListener('keyup'"), {
-    inGame: true, noLock: true, keys, mouse, P: { alive: true },
+    inGame: true, touchControlsActive: true, keys, mouse, P: { alive: true },
     $: id => elements[id], chatOpen: () => false,
     document: { pointerLockElement: null },
     addEventListener: (name, fn) => { handlers[name] = fn; },
@@ -59,6 +59,55 @@ test('Escape opens and resumes pause when pointer lock is unavailable', () => {
   assert.equal(elements.pause.hidden, false); assert.equal(keys.KeyW, false); assert.equal(mouse.left, false);
   handlers.keydown(escape); assert.equal(elements.pause.hidden, true);
   // A native Escape may unlock the pointer before its keydown is delivered.
-  ctx.noLock = false; elements.pause.hidden = false;
+  ctx.touchControlsActive = false; elements.pause.hidden = false;
   handlers.keydown(escape); assert.equal(elements.pause.hidden, false);
+});
+
+function pointerHarness(request) {
+  const handlers = {}, elements = { pause: { hidden: true }, buy: { hidden: true }, over: { hidden: true }, pointerHint: { textContent: '' } };
+  const canvas = { requestPointerLock: request, focus() {} }, keys = { KeyW: true }, mouse = { left: true };
+  const document = { pointerLockElement: null, hidden: false, hasFocus: () => true, body: { classList: { toggle() {} } }, addEventListener: (name, fn) => { handlers[name] = fn; } };
+  const ctx = run(section('let touchControlsActive =', "\naddEventListener('keydown', e =>"), { inGame: true, renderer: { domElement: canvas }, document, keys, mouse, $: id => elements[id], chatOpen: () => false });
+  return { ctx, document, canvas, handlers, elements, keys, mouse };
+}
+
+test('pointer rejection keeps desktop input paused and permits a later successful retry', async () => {
+  let calls = 0;
+  const h = pointerHarness(() => { calls++; return Promise.reject(new Error('NotAllowedError')); });
+  h.ctx.lockPointer(); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.elements.pause.hidden, false); assert.equal(vm.runInContext('looking()', h.ctx), false);
+  assert.equal(h.keys.KeyW, false); assert.equal(h.mouse.left, false);
+  h.canvas.requestPointerLock = () => { calls++; h.document.pointerLockElement = h.canvas; h.handlers.pointerlockchange(); return Promise.resolve(); };
+  h.ctx.lockPointer(); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(calls, 2); assert.equal(h.elements.pause.hidden, true); assert.equal(vm.runInContext('looking()', h.ctx), true);
+  h.document.pointerLockElement = null; h.keys.KeyW = true; h.mouse.left = true; h.handlers.pointerlockchange();
+  assert.equal(h.elements.pause.hidden, false); assert.equal(h.keys.KeyW, false); assert.equal(h.mouse.left, false);
+});
+
+test('synchronous capture errors and a different locked element never enable mouse aiming', () => {
+  const h = pointerHarness(() => { throw new Error('unsupported'); });
+  h.ctx.lockPointer(); h.ctx.lockPointer();
+  assert.equal(h.elements.pause.hidden, false); assert.equal(vm.runInContext('looking()', h.ctx), false);
+  h.document.pointerLockElement = {}; h.elements.pause.hidden = true;
+  assert.equal(vm.runInContext('looking()', h.ctx), false);
+  vm.runInContext('touchControlsActive=true', h.ctx); assert.equal(vm.runInContext('looking()', h.ctx), true);
+  vm.runInContext('touchControlsActive=false', h.ctx); assert.equal(vm.runInContext('looking()', h.ctx), false);
+});
+
+test('unlocked desktop mouse motion cannot rotate the camera even with touch controls enabled', () => {
+  const handlers = {}, player = { alive: true, yaw: 0, pitch: 0 };
+  run(section("addEventListener('mousemove', e =>", "addEventListener('wheel', e =>"), {
+    addEventListener: (name, fn) => { handlers[name] = fn; }, pointerCaptured: () => false, looking: () => true, P: player,
+  });
+  handlers.mousemove({ movementX: 50, movementY: 50 }); assert.equal(player.yaw, 0); assert.equal(player.pitch, 0);
+});
+
+test('a delayed pointer capture cannot trap the cursor after leaving a match', () => {
+  const h = pointerHarness(() => undefined);
+  h.document.exitPointerLock = () => { h.document.pointerLockElement = null; h.handlers.pointerlockchange(); };
+  h.ctx.lockPointer();
+  vm.runInContext('captureWanted=false; inGame=false', h.ctx);
+  h.document.pointerLockElement = h.canvas; h.handlers.pointerlockchange();
+  assert.equal(h.document.pointerLockElement, null);
+  assert.equal(vm.runInContext('looking()', h.ctx), false);
 });

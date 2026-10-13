@@ -7,18 +7,18 @@ const { createHash } = require('node:crypto');
 const Sim = require('../shared/sim');
 const manifest = require('../public/maps/dust2.json');
 
-test('the complete lightweight map download stays below 3 MiB and matches its manifest', () => {
+test('map assets match their manifest and surface textures stay lightweight', () => {
   let bytes = 0;
   for (const file of manifest.files) {
     const content = fs.readFileSync(path.join(__dirname, '../public/maps', file.name));
     assert.equal(content.length, file.bytes);
     assert.equal(createHash('sha256').update(content).digest('hex'), file.sha256);
-    bytes += content.length;
+    if (file.name.endsWith('.webp')) bytes += content.length;
   }
-  assert.ok(bytes < 3 * 1024 * 1024, `map assets grew to ${bytes} bytes`);
+  assert.ok(bytes < 1024 * 1024, `map assets grew to ${bytes} bytes`);
 });
 
-test('original spawn positions have standing clearance on the lightweight floor', () => {
+test('original spawn positions have standing clearance on the source-map floor', () => {
   for (const team of ['CT', 'T']) for (const spawn of Sim.MAP.spawns[team]) {
     const floor = Sim.World.floor(spawn.x, spawn.z, spawn.y + .6, 2);
     assert.notEqual(floor, null, team);
@@ -59,4 +59,16 @@ test('A-site crate sides retain both movement and bullet cover', () => {
   const player = { pos: { x: 29, y: Sim.World.floor(29, -63, 3), z: -63 }, vel: Sim.V(), crouch: 0, onGround: true };
   for (let i = 0; i < 20; i++) Sim.drive(player, 1, 0, 5, 1 / 60);
   assert.ok(player.pos.x < 30, 'walking must not pass through the crate');
+});
+
+test('map packing preserves every source triangle and the exact decoded positions and indices', () => {
+  const zlib = require('node:zlib');
+  const bytes = zlib.gunzipSync(fs.readFileSync(path.join(__dirname, '../public/maps/dust2.mesh.gz')));
+  const geometry = require('../shared/dust2-mesh').geometry(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), manifest);
+  assert.equal(manifest.positionEncoding, 'source-accessors-lossless');
+  assert.equal(manifest.sourceTriangles, 4542407);
+  assert.equal(geometry.index.count / 3, manifest.sourceTriangles);
+  assert.equal(createHash('sha256').update(new Uint8Array(geometry.attributes.position.array.buffer)).digest('hex'), manifest.positionSHA256);
+  assert.equal(createHash('sha256').update(new Uint8Array(geometry.index.array.buffer)).digest('hex'), manifest.indexSHA256);
+  geometry.dispose();
 });
