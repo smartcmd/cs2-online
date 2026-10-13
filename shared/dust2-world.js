@@ -30,7 +30,7 @@ function visibleHit(hit, solidOnly) {
   const info = mapMeta.opacity.tiles[m.mask];
   const wrap = (n, mode) => mode === 33071 ? Math.min(1, Math.max(0, n)) : mode === 33648 ? 1 - Math.abs(((n % 2) + 2) % 2 - 1) : n - Math.floor(n);
   const x = Math.min(info.width - 1, Math.floor(wrap(hit.uv.x, m.wrapS) * info.width));
-  const y = Math.min(info.height - 1, Math.floor((1 - wrap(hit.uv.y, m.wrapT)) * info.height));
+  const y = Math.min(info.height - 1, Math.floor(wrap(hit.uv.y, m.wrapT) * info.height));
   return alpha[info.offset + y * info.width + x] / 255 >= m.cutoff;
 }
 api.raycast = function (origin, direction, distance, solidOnly = false) {
@@ -72,37 +72,92 @@ function resolve(x, y, z, height, radius = .34) {
 }
 api.blocked = function (x, y, z, height) {
   if (!tree) return false;
-  const p = resolve(x, y + .008, z, height);
-  return Math.hypot(p.x - x, p.z - z) > .035 || Math.abs(p.y - y - .008) > .035;
+  segment.start.set(x, y + .34, z); segment.end.set(x, y + height - .34, z);
+  box.makeEmpty().expandByPoint(segment.start).expandByPoint(segment.end).expandByScalar(.34);
+  return tree.shapecast({
+    intersectsBounds: bounds => bounds.intersectsBox(box),
+    intersectsTriangle: (triangle, index) => materialAt(index).collidable && triangle.closestPointToSegment(segment, onTriangle, onSegment) < .338,
+  });
+};
+const RADIUS = .34, STEP_HEIGHT = .45, GROUND_SNAP = .3, SKIN = .001;
+const supportBox = new THREE.Box3(), supportNormal = new THREE.Vector3(), supportCenter = new THREE.Vector3(), supportPoint = new THREE.Vector3();
+// Find the height of the capsule's bottom sphere, including triangle edges.
+// A ray under its centre is lower than the sphere's actual support on a slope.
+api.support = function (x, z, feet, up = STEP_HEIGHT, down = GROUND_SNAP) {
+  if (!tree) return null;
+  const low = feet - down, high = feet + up;
+  supportBox.min.set(x - RADIUS, low - RADIUS, z - RADIUS);
+  supportBox.max.set(x + RADIUS, high + RADIUS, z + RADIUS);
+  let best = null;
+  const accept = height => { if (height >= low - SKIN && height <= high + SKIN && (best === null || height > best)) best = height; };
+  tree.shapecast({
+    intersectsBounds: bounds => bounds.intersectsBox(supportBox),
+    intersectsTriangle: (triangle, index) => {
+      if (!materialAt(index).collidable) return false;
+      triangle.getNormal(supportNormal);
+      if (supportNormal.y < 0) supportNormal.negate();
+      if (supportNormal.y < .7) return false;
+      const n = supportNormal, d = n.dot(triangle.a);
+      const height = (d - n.x * x - n.z * z + RADIUS) / n.y - RADIUS;
+      if (height >= low - SKIN && height <= high + SKIN) {
+        supportCenter.set(x, height + RADIUS, z);
+        triangle.closestPointToPoint(supportCenter, supportPoint);
+        if (supportCenter.distanceToSquared(supportPoint) <= RADIUS * RADIUS + 1e-7) accept(height);
+      }
+      for (const [a, b] of [[triangle.a, triangle.b], [triangle.b, triangle.c], [triangle.c, triangle.a]]) {
+        const ex = b.x - a.x, ez = b.z - a.z, ey = b.y - a.y, length2 = ex * ex + ez * ez;
+        if (length2 < 1e-12) continue;
+        const dx = a.x - x, dz = a.z - z, centre = -(dx * ex + dz * ez) / length2;
+        const closest2 = dx * dx + dz * dz - centre * centre * length2, remaining = RADIUS * RADIUS - closest2;
+        if (remaining < 0) continue;
+        const t = Math.max(0, Math.min(1, centre + ey * Math.sqrt(remaining / (length2 * (length2 + ey * ey)))));
+        const qx = dx + t * ex, qz = dz + t * ez, vertical2 = RADIUS * RADIUS - qx * qx - qz * qz;
+        if (vertical2 >= 0) accept(a.y + t * ey + Math.sqrt(vertical2) - RADIUS);
+      }
+      return false;
+    },
+  });
+  return best === null ? null : best + SKIN;
 };
 api.move = function (e, dt, height) {
-  if (!tree) return;
-  const steps = Math.max(1, Math.ceil(Math.hypot(e.vel.x, e.vel.y, e.vel.z) * dt / .14));
+  if (!tree || dt <= 0) return;
+  const steps = Math.max(1, Math.ceil(dt * 60), Math.ceil(Math.hypot(e.vel.x, e.vel.y, e.vel.z) * dt / .1));
   const step = dt / steps;
   for (let i = 0; i < steps; i++) {
     const p = e.pos, nx = p.x + e.vel.x * step, nz = p.z + e.vel.z * step;
-    let y = p.y;
-    if (e.onGround && e.vel.y <= 0) {
-      const floor = api.floor(nx, nz, p.y + .46, .75);
-      if (floor !== null && floor >= p.y - .26 && !api.blocked(nx, floor + .005, nz, height)) y = floor + .005;
-    }
-    let horizontal = resolve(nx, y, nz, height);
-    if (e.onGround && Math.hypot(horizontal.x - nx, horizontal.z - nz) > .005) {
-      const raised = resolve(nx, p.y + .42, nz, height);
-      if (Math.hypot(raised.x - nx, raised.z - nz) < .005 && Math.abs(raised.y - p.y - .42) < .01) {
-        horizontal = raised; e.onGround = false;
+    const grounded = e.onGround && e.vel.y <= 0;
+    if (grounded) {
+      const support = api.support(nx, nz, p.y);
+      if (support !== null && !api.blocked(nx, support, nz, height)) {
+        p.x = nx; p.y = support; p.z = nz; e.vel.y = 0; e.onGround = true;
+        continue;
       }
     }
+    const horizontal = resolve(nx, p.y, nz, height);
+    const blockedX = nx - horizontal.x, blockedZ = nz - horizontal.z, blocked2 = blockedX * blockedX + blockedZ * blockedZ;
+    if (blocked2 > 1e-8) {
+      const into = (e.vel.x * blockedX + e.vel.z * blockedZ) / blocked2;
+      if (into > 0) { e.vel.x -= blockedX * into; e.vel.z -= blockedZ * into; }
+    }
     p.x = horizontal.x; p.y = horizontal.y; p.z = horizontal.z;
-    e.vel.y -= 20 * step;
-    const ny = p.y + e.vel.y * step;
+    if (grounded) {
+      const support = api.support(p.x, p.z, p.y, .08, GROUND_SNAP);
+      if (support !== null && !api.blocked(p.x, support, p.z, height)) {
+        p.y = support; e.vel.y = 0; e.onGround = true; continue;
+      }
+    }
+    e.onGround = false; e.vel.y -= 20 * step;
+    const ny = p.y + e.vel.y * step, falling = e.vel.y < 0;
     const vertical = resolve(p.x, ny, p.z, height);
-    if (Math.abs(vertical.y - ny) > .001) e.vel.y = 0;
+    const touched = Math.abs(vertical.y - ny) > .0001;
     Object.assign(p, vertical);
-    const floor = api.floor(p.x, p.z, p.y + .08, .16);
-    e.onGround = e.vel.y <= 0 && floor !== null && Math.abs(p.y - floor) < .085;
-    if (e.onGround) { p.y = floor + .003; e.vel.y = 0; }
-    if (p.y < -30) { const n = api.nearest(p.x, p.z); Object.assign(p, { x: n.x, y: n.y + .1, z: n.z }); e.vel.y = 0; }
+    if (touched) {
+      if (falling) {
+        const support = api.support(p.x, p.z, p.y, .04, .04);
+        if (support !== null && !api.blocked(p.x, support, p.z, height)) { p.y = support; e.onGround = true; }
+      }
+      e.vel.y = 0;
+    }
   }
 };
 api.nearest = function (x, z, y) {

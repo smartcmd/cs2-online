@@ -277,7 +277,7 @@ body.touch #fps{top:calc(50px + env(safe-area-inset-top,0px))}
   <header class="topnav">
     <div class="logo"><span class="cs">CS2</span><span class="web">网页版</span></div>
     <span class="navmap">DE_DUST2 · 沙漠 II · 在线联机</span>
-    <nav class="navr"><button class="navbtn" id="tour" disabled>浏览地图</button><button class="navbtn" id="gfxOpen">画质与操作</button></nav>
+    <nav class="navr"><button class="navbtn" data-fullscreen>全屏 · Alt+Enter</button><button class="navbtn" id="tour" disabled>浏览地图</button><button class="navbtn" id="gfxOpen">画质与操作</button></nav>
   </header>
   <div class="brief">
     <h2>开始游戏</h2>
@@ -329,7 +329,8 @@ body.touch #fps{top:calc(50px + env(safe-area-inset-top,0px))}
     <h2>菜单</h2>
     <p id="pointerHint">联机对局不会暂停，其他玩家还在继续。点击“回到游戏”重新锁定鼠标。换边会在当前回合阵亡，下回合在新阵营出生。</p>
     <div class="row"><button class="go" id="resume">回到游戏</button></div>
-    <div class="row"><button class="btn2" id="toCT">换到反恐精英</button><button class="btn2" id="toT">换到恐怖分子</button><button class="btn2" id="quit">离开房间</button><button class="btn2" id="gfxOpen2">画质设置</button></div>
+    <div class="row"><button class="btn2" id="toCT">换到反恐精英</button><button class="btn2" id="toT">换到恐怖分子</button><button class="btn2" id="quit">离开房间</button><button class="btn2" data-fullscreen>全屏游戏 · Alt+Enter</button>
+    <button class="btn2" id="gfxOpen2">画质设置</button></div>
   </div>
 </div>
 
@@ -372,6 +373,9 @@ body.touch #fps{top:calc(50px + env(safe-area-inset-top,0px))}
 <div id="loaderr" hidden>游戏文件加载失败，请确认服务器正在运行后刷新页面。</div>
 <script src="/three.min.js"></script>
 <script src="/bvh.js"></script>
+<script src="/gltf-loader.js"></script>
+<script src="/skeleton-utils.js"></script>
+<script src="/game-assets.js"></script>
 <script src="/dust2-mesh.js"></script>
 <script src="/dust2-data.js"></script>
 <script src="/dust2-world.js"></script>
@@ -513,28 +517,46 @@ function tone({ f0 = 440, f1 = null, dur = .1, type = 'sine', gain = .3, pos = n
   const env = ac.createGain(); env.gain.setValueAtTime(gain, t); env.gain.exponentialRampToValueAtTime(0.001, t + dur);
   o.connect(env); env.connect(out(pos, 1)); o.start(t); o.stop(t + dur + 0.02);
 }
+const reloadSounds = new Set();
+function cancelReloadSounds() { for (const source of reloadSounds) { try { source.stop(); } catch (error) {} } reloadSounds.clear(); }
+function sampleSound(name, pos, gain = 1, delay = 0, reload = false) {
+  const buffer = GameAssets.sounds.get(name);
+  if (!ac || !buffer) return false;
+  const source = ac.createBufferSource(), output = out(pos, gain); source.buffer = buffer;
+  source.connect(output); source.onended = () => { reloadSounds.delete(source); source.disconnect(); output.disconnect(); };
+  if (reload) reloadSounds.add(source);
+  source.start(ac.currentTime + delay); return true;
+}
 const sfx = {
   shot(kind, pos) {
+    const recording = { ak: 'ak47_01', m4: 'm4a1_01', rifle: 'galil_01', pistol: 'glock_02', usp: 'usp_01', deagle: 'deagle_01', awp: 'awp_01' }[kind];
+    if (recording && sampleSound(recording + '.mp3', pos, .8)) return;
     if (kind === 'usp') { noise({ dur: .07, freq: 1300, q: .8, gain: .45, pos }); tone({ f0: 160, f1: 70, dur: .05, gain: .2, pos }); return; }
     const P = { ak: [2400, .2, 1.1, 95], m4: [2000, .16, .95, 110], rifle: [2200, .16, .9, 105], pistol: [2600, .12, .75, 140], deagle: [1700, .3, 1.2, 70], awp: [1100, .55, 1.5, 55] }[kind];
     noise({ dur: P[1], freq: P[0], type: 'lowpass', q: .7, gain: P[2], pos });
     noise({ dur: .04, freq: 4500, type: 'highpass', gain: P[2] * .5, pos });
     tone({ f0: P[3], f1: P[3] * .4, dur: P[1] * .8, gain: P[2] * .7, pos });
   },
-  step(pos, g = .22) { noise({ dur: .07, freq: rand(380, 620), q: 1.4, gain: g, pos }); },
-  land(pos) { noise({ dur: .12, freq: 300, q: 1, gain: .35, pos }); },
-  head() { tone({ f0: 2900, dur: .14, type: 'triangle', gain: .25 }); tone({ f0: 4300, dur: .08, type: 'sine', gain: .12 }); },
+  step(pos, g = .22) { if (sampleSound('footstep_concrete_00' + Math.floor(Math.random() * 5) + '.ogg', pos, g * 1.8)) return; noise({ dur: .07, freq: rand(380, 620), q: 1.4, gain: g, pos }); },
+  land(pos) { if (sampleSound('footstep_concrete_004.ogg', pos, .45)) return; noise({ dur: .12, freq: 300, q: 1, gain: .35, pos }); },
+  head() { if (sampleSound('headshot_armor_e1.mp3', null, .7)) return; tone({ f0: 2900, dur: .14, type: 'triangle', gain: .25 }); tone({ f0: 4300, dur: .08, type: 'sine', gain: .12 }); },
   hit() { tone({ f0: 210, f1: 120, dur: .06, gain: .25 }); },
-  hurt() { noise({ dur: .12, freq: 500, q: 2, gain: .5 }); },
-  reload() { noise({ dur: .03, freq: 3200, type: 'highpass', gain: .4 }); noise({ dur: .04, freq: 2400, type: 'highpass', gain: .4, delay: .45 }); },
+  hurt() { if (sampleSound('kevlar_01.mp3', null, .7)) return; noise({ dur: .12, freq: 500, q: 2, gain: .5 }); },
+  reload(id) {
+    cancelReloadSounds();
+    const clips = { ak47: ['ak47_clipout_01', 'ak47_boltpull_01'], m4a4: ['m4a1_clipout', 'm4a1_clipin'], glock: ['glock_clipout', 'glock_clipin'], usp: ['usp_clipout_01', 'usp_clipin_02'], awp: ['awp_clipout', 'awp_clipin'], deagle: ['de_clipout', 'glock_clipin'] }[id] || ['m4a1_clipout', 'm4a1_clipin'];
+    if (sampleSound(clips[0] + '.mp3', null, .65, 0, true)) { sampleSound(clips[1] + '.mp3', null, .65, (W[id]?.reload || 2) * .65, true); return; }
+    noise({ dur: .03, freq: 3200, type: 'highpass', gain: .4 }); noise({ dur: .04, freq: 2400, type: 'highpass', gain: .4, delay: .45 }); },
   dry() { noise({ dur: .02, freq: 3500, type: 'highpass', gain: .4 }); },
-  knife(pos) { noise({ dur: .14, freq: 3200, q: 3, gain: .35, pos }); },
-  beep(pos) { tone({ f0: 2150, dur: .08, type: 'square', gain: .07, pos }); },
-  explode(pos) { noise({ dur: 1.8, freq: 700, type: 'lowpass', gain: 2.2, pos }); tone({ f0: 60, f1: 22, dur: 1.3, gain: 1, pos }); },
+  knife(pos) { if (sampleSound('knife_swish_light_01.mp3', pos, .7)) return; noise({ dur: .14, freq: 3200, q: 3, gain: .35, pos }); },
+  beep(pos) { if (sampleSound('weapons_c4_c4_beep2.mp3', pos, .32)) return; tone({ f0: 2150, dur: .08, type: 'square', gain: .07, pos }); },
+  explode(pos) { if (sampleSound('weapons_c4_c4_explode_close_01.mp3', pos, 1)) return; noise({ dur: 1.8, freq: 700, type: 'lowpass', gain: 2.2, pos }); tone({ f0: 60, f1: 22, dur: 1.3, gain: 1, pos }); },
   buy() { tone({ f0: 900, dur: .05, type: 'triangle', gain: .15 }); },
   tick() { tone({ f0: 1400, dur: .03, type: 'square', gain: .05 }); },
 };
 function say(text) {
+  const recording = { 'Counter-Terrorists win': 'ctwin', 'Terrorists win': 'terwin', 'Bomb has been planted': 'bombpl', 'Bomb has been defused': 'bombdef' }[text];
+  if (recording && sampleSound('vo_announcer_cs2_classic_' + recording + '.mp3', null, .8)) return;
   try {
     if (!('speechSynthesis' in window) || settings.vol <= 0) return;
     const u = new SpeechSynthesisUtterance(text); u.lang = 'en-US'; u.rate = 1.05; u.pitch = .75; u.volume = settings.vol;
@@ -551,6 +573,7 @@ let M = mat;
 function bx(g, w, h, d, x, y, z, c, rx = 0) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), M(c)); m.position.set(x, y, z); m.rotation.x = rx; g.add(m); return m; }
 function cyl(g, r, len, x, y, z, c) { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 10), M(c)); m.rotation.x = Math.PI / 2; m.position.set(x, y, z); g.add(m); return m; }
 function buildGun(id) {
+  if (GameAssets.ready) return GameAssets.gun(id, M === vmat ? null : envLit);
   const g = new THREE.Group(); const muzzle = new THREE.Vector3(0, 0, -.5);
   const dark = 0x1c1d1f, wood = 0x7b4a22;
   if (id === 'ak47' || id === 'galil') {
@@ -586,6 +609,7 @@ function buildGun(id) {
 const flashMat = new THREE.SpriteMaterial({ map: texFlash, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true });
 const vFlashMat = new THREE.SpriteMaterial({ map: texFlash, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, transparent: true });
 function buildViewModel(id, team) {
+  if (GameAssets.ready) return GameAssets.view(id, vFlashMat, W[id].slot);
   M = vmat;
   const root = new THREE.Group(); const gun = buildGun(id); root.add(gun);
   const sleeve = team === 'CT' ? 0x34445e : 0x8c7552, glove = 0x1e1f21;
@@ -619,6 +643,7 @@ function limb(parent, a, b, r0, r1, c) {
 }
 // proportions follow the hitboxes in sim.js: legs to 0.85 m, torso 0.85-1.45 m, head centred at 1.6 m
 function buildBotModel(team) {
+  if (GameAssets.ready) return GameAssets.player(team, envLit);
   const ct = team === 'CT', box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
   const C = ct ? { top: 0x34445e, pants: 0x2b313b, vest: 0x24282d, gear: 0x3a4658, head: 0x3a4047, boot: 0x1b1c1e, pad: 0x222529 }
     : { top: 0x8c7552, pants: 0x4a4233, vest: 0x5a4a31, gear: 0x6a5a3b, head: 0x2a2724, boot: 0x2a231c, pad: 0x3a3226 };
@@ -657,6 +682,7 @@ function buildBotModel(team) {
   return { g, hipL, hipR, upper, gun, gunId: null };
 }
 function setModelGun(m, id) {
+  if (m.official) return GameAssets.playerGun(m, id);
   if (m.gunId === id) return; m.gunId = id;
   while (m.gun.children.length) m.gun.remove(m.gun.children[0]);
   const gg = buildGun(id); gg.traverse(o => { if (o.isMesh) o.castShadow = o.receiveShadow = true; }); m.gun.add(gg);
@@ -732,6 +758,7 @@ const tourPoints = {
   'A 包点': [[21, 4.3, -61], [32, 3.4, -66]],
   'A 小道': [[13.5001, 4.8374, -56.5594], [30, 3.5, -65]],
   'CT 通道': [[8.0804, -1.5772, -57.1595], [25, -1, -57]],
+  '中路塔楼': [[12, 4.5, -51], [5, 8, -52]],
   'B 洞出口': [[-42.6339, 1.6072, -48.0187], [-40, 1.6, -65]],
   'B 包点': [[-38, 2.2, -58], [-43, 1.9, -70]],
   '中门': [[-9, -.5, -33], [-10, -1.5, -46]],
@@ -879,7 +906,7 @@ $('tourExit').onclick = () => { mapPreview = null; $('menu').hidden = false; $('
       if (alphaTextures.has(key)) return alphaTextures.get(key);
       const info = meta.opacity.tiles[mask], { width, height } = info, rgba = new Uint8Array(width * height * 4);
       for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
-        const value = opacity[info.offset + y * width + x], offset = ((height - 1 - y) * width + x) * 4;
+        const value = opacity[info.offset + y * width + x], offset = (y * width + x) * 4;
         rgba[offset] = rgba[offset + 1] = rgba[offset + 2] = value; rgba[offset + 3] = 255;
       }
       const texture = new THREE.DataTexture(rgba, width, height, THREE.RGBAFormat);
@@ -895,7 +922,7 @@ $('tourExit').onclick = () => { mapPreview = null; $('menu').hidden = false; $('
       material.side = surface.doubleSided ? THREE.DoubleSide : THREE.FrontSide;
       material.transparent = surface.overlay; material.depthWrite = !surface.overlay;
       if (surface.mask >= 0) { material.alphaMap = alphaTexture(surface); material.alphaTest = surface.overlay ? .02 : surface.cutoff; }
-      material.polygonOffset = surface.bias; material.polygonOffsetFactor = -1; material.polygonOffsetUnits = -1;
+      material.polygonOffset = surface.bias; material.polygonOffsetFactor = -(surface.depthLayer || 1); material.polygonOffsetUnits = -2 * (surface.depthLayer || 1);
       const quadrant = type === 0 ? [0, .5] : type === 2 ? [.5, 0] : type === 5 || type === 3 ? [0, 0] : [.5, .5];
       const scale = type === 0 ? 2.6 : type === 2 ? 2.4 : type === 5 ? 5.5 : 4.5;
       material.onBeforeCompile = shader => {
@@ -971,6 +998,11 @@ $('tourExit').onclick = () => { mapPreview = null; $('menu').hidden = false; $('
     }
     const desert = new THREE.Mesh(new THREE.PlaneGeometry(450, 450), new THREE.MeshLambertMaterial({ color: 0xbfa16c }));
     desert.rotation.x = -Math.PI / 2; desert.position.y = -8.1; desert.receiveShadow = true; scene.add(desert);
+    await GameAssets.load((done, total) => { $('mapLoad').textContent = `载入人物、武器与音效 ${done} / ${total}`; });
+    const device = GameAssets.gun('c4', envLit); device.rotation.x = -Math.PI / 2; device.updateMatrixWorld(true);
+    const deviceBox = new THREE.Box3().setFromObject(device); device.position.y = -deviceBox.min.y;
+    for (const child of [...bombMesh.children]) if (child !== bombMesh.userData.led) bombMesh.remove(child);
+    bombMesh.add(device);
     mapReady = true; $('start').disabled = false; $('start').textContent = '进入沙二'; $('tour').disabled = false;
     mapProgress(1, `沙二原地图结构 · 地图资源 ${(meta.files.reduce((n, f) => n + f.bytes, 0) / 1048576).toFixed(1)} MiB`);
     $('mapProg').classList.add('done');
@@ -1070,7 +1102,7 @@ function reconcile(m, arr) {
     P.reloadEnd = 0; P.recoilIdx = 0; P.plantT = 0; zoomLevel = 0; P.scoped = 0; applyZoom(); onWeaponView(vmId);
     return;
   }
-  if (!P.alive) { visOff.x = visOff.y = visOff.z = 0; return; }
+  if (!P.alive) { cancelReloadSounds(); visOff.x = visOff.y = visOff.z = 0; return; }
   const yaw = P.yaw;
   for (const c of pending) { P.yaw = c.y; Sim.moveHuman(P, c.dt, c.k, lockFor(c.k, c.b)); }
   P.yaw = yaw;
@@ -1110,12 +1142,13 @@ function predictWeapon(c, lock) {
   const want = (c.b & 1) && !lock && !d.c4 && (d.auto || d.melee || !P.trigPrev);
   P.trigPrev = !!(c.b & 1);
   if (!want || lt < P.nextFire || P.reloadEnd || lt < P.drawEnd) return;
-  if (d.melee) { P.nextFire = lt + .42; vmState.swing = 1; sfx.knife(null); return; }
+  if (d.melee) { P.nextFire = lt + .42; vmState.swing = 1; sfx.knife(null); GameAssets.playView(vm, 'shoot', .42); return; }
   if (predMag(w) <= 0) { sfx.dry(); P.nextFire = lt + .25; localReload(); return; }
   P.nextFire = lt + 60 / d.rpm; P.lastShot = lt; c.shot = w.id;
   const [px, py] = Sim.recoilAt(d, P.recoilIdx);
   P.recoilIdx = Math.min(P.recoilIdx + 1, d.pattern.length - 2);
   sfx.shot(d.snd, null);
+  GameAssets.playView(vm, 'shoot', 60 / d.rpm);
   vmState.kick += d.scope ? .09 : d.slot === 2 ? .05 : .028;
   if (vm) { vm.userData.flash.visible = d.snd !== 'usp'; vm.userData.flash.material.rotation = Math.random() * 6; vmState.flashT = .045; }
   const eye = [P.pos.x, P.pos.y + Sim.eyeH(P), P.pos.z], dir = Sim.dirFromAngles(P.yaw - px, P.pitch + py);
@@ -1130,13 +1163,14 @@ function predictWeapon(c, lock) {
 function localReload() {
   const w = P.weapons[P.slot]; if (!w || !w.def.rpm || P.reloadEnd) return;
   if (predMag(w) >= w.def.mag || w.reserve <= 0) return;
-  P.reloadDur = w.def.reload; P.reloadEnd = lt + w.def.reload; zoomLevel = 0; P.scoped = 0; applyZoom(); sfx.reload();
+  P.reloadDur = w.def.reload; P.reloadEnd = lt + w.def.reload; zoomLevel = 0; P.scoped = 0; applyZoom(); sfx.reload(w.id); GameAssets.playView(vm, 'reload', w.def.reload);
 }
 function onWeaponView(id) {
-  if (vm) { vScene.remove(vm); vm = null; }
+  cancelReloadSounds();
+  if (vm) { vScene.remove(vm); if (vm.userData.official) GameAssets.dispose(vm); vm = null; }
   vmId = id; if (!id) return;
   vm = buildViewModel(id, P.team); vScene.add(vm);
-  const d = W[id]; P.drawDur = d.melee ? .3 : d.scope ? 1.1 : d.slot === 2 ? .45 : .8; P.drawEnd = lt + P.drawDur; P.reloadEnd = 0;
+  const d = W[id]; P.drawDur = d.melee ? .3 : d.scope ? 1.1 : d.slot === 2 ? .45 : .8; P.drawEnd = lt + P.drawDur; P.reloadEnd = 0; GameAssets.playView(vm, 'draw', P.drawDur);
 }
 function localSlot(s) {
   if (!P.alive || !P.weapons[s] || s === P.slot) return;
@@ -1150,7 +1184,7 @@ function applyZoom() {
 function onRightClick() {
   if (!P.alive) return; const w = P.weapons[P.slot]; if (!w) return;
   if (w.def.scope && !P.reloadEnd && lt >= P.drawEnd) { zoomLevel = (zoomLevel + 1) % 3; P.scoped = zoomLevel; P.zoomHold = cnow() + .6; applyZoom(); }
-  else if (w.def.melee && lt >= P.nextFire && latest && latest.ph !== 'freeze' && latest.ph !== 'over') { P.nextFire = lt + 1; vmState.swing = 1; sfx.knife(null); }
+  else if (w.def.melee && lt >= P.nextFire && latest && latest.ph !== 'freeze' && latest.ph !== 'over') { P.nextFire = lt + 1; vmState.swing = 1; sfx.knife(null); GameAssets.playView(vm, 'heavy', 1); }
   sendAction('alt');
 }
 
@@ -1175,7 +1209,7 @@ function syncRemotes(dt) {
     let r = remotes.get(id);
     const key = s.team + P.team;
     if (!r || r.key !== key) {
-      if (r) scene.remove(r.m.g);
+      if (r) { scene.remove(r.m.g); if (r.m.official) GameAssets.dispose(r.m.g); }
       const m = buildBotModel(s.team); scene.add(m.g); m.phase = 0;
       if (s.team === P.team) { m.tag = nameSprite(s.name, s.team === 'CT' ? '#9fbcf0' : '#f0bd6a'); m.g.add(m.tag); }
       r = { m, key, alive: s.alive, deadT: s.alive ? 0 : 9, fall: 1, lx: s.x, lz: s.z, stepT: 0, name: s.name }; remotes.set(id, r);
@@ -1190,16 +1224,17 @@ function syncRemotes(dt) {
     const sp = dt > 0 ? Math.hypot(s.x - r.lx, s.z - r.lz) / dt : 0; r.lx = s.x; r.lz = s.z;
     if (s.alive) {
       g.rotation.x = 0; g.rotation.z = 0; m.phase += Math.min(sp, 7) * dt * 2.2;
-      const sw = Math.sin(m.phase) * .6 * Math.min(1, sp / 4); m.hipL.rotation.x = sw; m.hipR.rotation.x = -sw;
-      g.scale.y = 1 - .28 * s.crouch; m.upper.rotation.x = s.pitch; setModelGun(m, s.wid || 'knife');
+      if (m.official) { g.scale.y = 1; setModelGun(m, s.wid || 'knife'); GameAssets.updatePlayer(m, s, sp, dt); }
+      else { const sw = Math.sin(m.phase) * .6 * Math.min(1, sp / 4); m.hipL.rotation.x = sw; m.hipR.rotation.x = -sw; g.scale.y = 1 - .28 * s.crouch; m.upper.rotation.x = s.pitch; setModelGun(m, s.wid || 'knife'); }
       if (m.tag) m.tag.visible = true;
       if (sp > 3.3 && sp < 9) { r.stepT -= dt; if (r.stepT <= 0) { r.stepT = .36; if (Math.hypot(s.x - cam.position.x, s.z - cam.position.z) < 30) sfx.step({ x: s.x, z: s.z }, s.team === P.team ? .12 : .3); } }
     } else {
       r.deadT += dt; const k = Math.min(1, r.deadT / .45);
-      g.rotation.x = k * k * Math.PI / 2 * .95; g.rotation.z = r.fall * k * .2; g.scale.y = 1; if (m.tag) m.tag.visible = false;
+      if (m.official) { g.rotation.x = g.rotation.z = 0; GameAssets.updatePlayer(m, s, 0, dt); }
+      else { g.rotation.x = k * k * Math.PI / 2 * .95; g.rotation.z = r.fall * k * .2; } g.scale.y = 1; if (m.tag) m.tag.visible = false;
     }
   }
-  for (const [id, r] of remotes) { if (!r.seen) { scene.remove(r.m.g); remotes.delete(id); } else r.seen = false; }
+  for (const [id, r] of remotes) { if (!r.seen) { scene.remove(r.m.g); if (r.m.official) GameAssets.dispose(r.m.g); remotes.delete(id); } else r.seen = false; }
 }
 function syncItems() {
   const live = new Set();
@@ -1208,13 +1243,14 @@ function syncItems() {
     if (!m) { m = buildGun(wid); m.traverse(o => { if (o.isMesh) o.castShadow = o.receiveShadow = true; }); m.rotation.set(0, yaw + Math.PI / 2, Math.PI / 2); m.position.set(x, y, z); scene.add(m); itemMeshes.set(id, m); }
     m.userData.to = [x, y, z];
   }
-  for (const [id, m] of itemMeshes) if (!live.has(id)) { scene.remove(m); itemMeshes.delete(id); }
+  for (const [id, m] of itemMeshes) if (!live.has(id)) { scene.remove(m); if (m.userData.assetModel) GameAssets.dispose(m); itemMeshes.delete(id); }
 }
 function clearWorldState() {
-  for (const r of remotes.values()) scene.remove(r.m.g); remotes.clear();
-  for (const m of itemMeshes.values()) scene.remove(m); itemMeshes.clear();
+  cancelReloadSounds();
+  for (const r of remotes.values()) { scene.remove(r.m.g); if (r.m.official) GameAssets.dispose(r.m.g); } remotes.clear();
+  for (const m of itemMeshes.values()) { scene.remove(m); if (m.userData.assetModel) GameAssets.dispose(m); } itemMeshes.clear();
   bombMesh.visible = false; clearFx(); snaps = []; latest = null; me = null; timeOffset = null; pending.length = 0; outbox = [];
-  if (vm) { vScene.remove(vm); vm = null; vmId = null; } lastTp = -1; P.alive = false;
+  if (vm) { vScene.remove(vm); if (vm.userData.official) GameAssets.dispose(vm); vm = null; vmId = null; } lastTp = -1; P.alive = false;
 }
 
 // ---------- server events ----------
@@ -1459,6 +1495,19 @@ function addChat(m) {
   setTimeout(() => { el.classList.add('old'); }, 10000);
 }
 
+// ---------- fullscreen ----------
+async function toggleFullscreen() {
+  try {
+    if (document.fullscreenElement) await document.exitFullscreen();
+    else await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
+  } catch (error) { banner('无法进入全屏', '当前浏览器未允许全屏，请在独立浏览器窗口重试。', 4); }
+}
+document.querySelectorAll('[data-fullscreen]').forEach(button => button.addEventListener('click', toggleFullscreen));
+document.addEventListener('fullscreenchange', () => {
+  document.querySelectorAll('[data-fullscreen]').forEach(button => { button.textContent = document.fullscreenElement ? '退出全屏 · Alt+Enter' : '全屏游戏 · Alt+Enter'; });
+  if (inGame && !pointerCaptured() && !touchControlsActive) showPointerPrompt();
+});
+
 // ---------- input ----------
 let touchControlsActive = false, lockPending = false, captureWanted = false;
 const pointerCaptured = () => document.pointerLockElement === renderer.domElement;
@@ -1495,6 +1544,7 @@ document.addEventListener('pointerlockerror', () => {
 });
 const looking = () => inGame && !document.hidden && $('pause').hidden && $('buy').hidden && $('over').hidden && !chatOpen() && (pointerCaptured() || touchControlsActive);
 addEventListener('keydown', e => {
+  if (e.code === 'Enter' && e.altKey && !chatOpen() && !['INPUT', 'TEXTAREA'].includes(document.activeElement && document.activeElement.tagName)) { e.preventDefault(); if (!e.repeat) toggleFullscreen(); return; }
   if (!inGame || chatOpen()) return;
   if (e.code === 'Tab' || e.code === 'Space') e.preventDefault();
   if (e.code === 'Escape' && !$('buy').hidden) { closeBuy(); return; }
@@ -1591,8 +1641,9 @@ function updateViewModel(dt) {
   vLight.sun += (sunlit - vLight.sun) * Math.min(1, dt * 8); vLight.sky += (sky - vLight.sky) * Math.min(1, dt * 4);
   vSun.intensity = SUN_POWER * vLight.sun; vHemi.intensity = SKY_POWER * vLight.sky;
   vInv.copy(cam.quaternion).invert(); vSun.position.copy(SUN_DIR).applyQuaternion(vInv); vHemi.position.copy(UP).applyQuaternion(vInv);
-  const slot = vm.userData.slot, w = P.weapons[P.slot];
-  const base = slot === 2 ? [.2, -.21, -.52] : slot === 3 ? [.24, -.24, -.45] : slot === 5 ? [.14, -.26, -.5] : w && w.def.scope ? [.26, -.27, -.6] : [.26, -.25, -.56];
+  if (vm.userData.official) GameAssets.updateView(vm, dt);
+  const native = vm.userData.official, slot = vm.userData.slot, w = P.weapons[P.slot];
+  const base = native ? [0, -.015, 0] : slot === 2 ? [.2, -.21, -.52] : slot === 3 ? [.24, -.24, -.45] : slot === 5 ? [.14, -.26, -.5] : w && w.def.scope ? [.26, -.27, -.6] : [.26, -.25, -.56];
   const sp = Math.hypot(P.vel.x, P.vel.z);
   if (P.onGround) vmState.bob += dt * sp * 1.6;
   const bobA = Math.min(1, sp / 5) * .012;
@@ -1601,9 +1652,9 @@ function updateViewModel(dt) {
   if (vmState.flashT > 0) { vmState.flashT -= dt; if (vmState.flashT <= 0) vm.userData.flash.visible = false; }
   let y = base[1] - Math.abs(Math.sin(vmState.bob)) * bobA + vmState.swayY, x = base[0] + Math.sin(vmState.bob * .5) * bobA + vmState.swayX, z = base[2] + vmState.kick;
   let rxx = vmState.kick * 1.6, rzz = 0, ryy = .04;
-  if (P.reloadEnd) { const k = 1 - (P.reloadEnd - lt) / P.reloadDur, d = Math.sin(clamp(k, 0, 1) * Math.PI); y -= .1 * d; rxx -= .5 * d; rzz += .5 * d; }
-  if (lt < P.drawEnd) { const k = 1 - (P.drawEnd - lt) / P.drawDur; y -= (1 - k) * (1 - k) * .3; rxx -= (1 - k) * .6; }
-  if (vmState.swing > 0) { const s = Math.sin(vmState.swing * Math.PI); ryy += s * .9; x -= s * .12; rzz -= s * .4; }
+  if (P.reloadEnd && !native) { const k = 1 - (P.reloadEnd - lt) / P.reloadDur, d = Math.sin(clamp(k, 0, 1) * Math.PI); y -= .1 * d; rxx -= .5 * d; rzz += .5 * d; }
+  if (lt < P.drawEnd && !native) { const k = 1 - (P.drawEnd - lt) / P.drawDur; y -= (1 - k) * (1 - k) * .3; rxx -= (1 - k) * .6; }
+  if (vmState.swing > 0 && !native) { const s = Math.sin(vmState.swing * Math.PI); ryy += s * .9; x -= s * .12; rzz -= s * .4; }
   if (!P.onGround) y += .015;
   vm.position.set(x, y, z); vm.rotation.set(rxx, ryy, rzz);
 }

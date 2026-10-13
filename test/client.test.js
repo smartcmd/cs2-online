@@ -12,6 +12,18 @@ function run(source, globals) { const context = vm.createContext(globals); vm.ru
 
 test('client script parses', () => { new vm.Script(script); });
 
+test('fullscreen toggles, updates labels and reports a denied request', async () => {
+  const handlers = {}, button = { addEventListener() {} }, notices = [];
+  const document = { fullscreenElement: null, querySelectorAll: () => [button], addEventListener: (name, fn) => handlers[name] = fn };
+  document.documentElement = { requestFullscreen: async () => { document.fullscreenElement = document.documentElement; handlers.fullscreenchange(); } };
+  document.exitFullscreen = async () => { document.fullscreenElement = null; handlers.fullscreenchange(); };
+  const ctx = run(section('async function toggleFullscreen()', '// ---------- input ----------'), { document, inGame: false, banner: (...args) => notices.push(args) });
+  await ctx.toggleFullscreen(); assert.match(button.textContent, /退出全屏/);
+  await ctx.toggleFullscreen(); assert.match(button.textContent, /全屏游戏/);
+  document.documentElement.requestFullscreen = async () => { throw Error('denied'); };
+  await ctx.toggleFullscreen(); assert.equal(notices.length, 1); assert.equal(document.fullscreenElement, null);
+});
+
 test('menus suppress held movement keys', () => {
   const ctx = run(section('function keyBits()', 'function localStep('), {
     keys: { KeyW: true, KeyE: true }, K: Sim.K, chatOpen: () => false, looking: () => false,

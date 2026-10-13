@@ -1,0 +1,816 @@
+{
+  "baseURL": "https://cs2.duskrain.cn/",
+  "source": "https://github.com/apich/cs2-web/tree/8402338bd765060b4cc0d719ae40f9539373aba7",
+  "files": [
+    {
+      "path": "assets/audio/cs2/ak47_01.mp3",
+      "bytes": 39580,
+      "sha256": "043273a40f6e18232f01717a0e12a1591f9b2eab92eab9fc260730763b30df2a",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/ak47_02.mp3",
+      "bytes": 34734,
+      "sha256": "dfa3945564ffcf2525a4ca2f008bc3f50a51e8dc1bf1f298a3f83e0d33d50123",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/ak47_04.mp3",
+      "bytes": 37601,
+      "sha256": "49a981d8acca15c976ff381504f2a110687b3ae62e17693ad1c6d597ca1c518f",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/ak47_boltpull_01.mp3",
+      "bytes": 7453,
+      "sha256": "6417af8ee585c11730d9c263915bb73d0a8a76fcc4fa8aa0fc5e892773343523",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/ak47_clipout_01.mp3",
+      "bytes": 7943,
+      "sha256": "bc2f82861a5987210d0749351cfe83413d72e2632ca655f6c4a31e61ea051461",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/ak47_distant.mp3",
+      "bytes": 22654,
+      "sha256": "31b176401c173c2c536a5200f5005c67ab250e441857e7babe4ac5d97d3ae48f",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/awp_01.mp3",
+      "bytes": 62616,
+      "sha256": "4ead729cc949cf344084b5540e83c02af16928fccb5414270c338dcbb9747d28",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/awp_02.mp3",
+      "bytes": 62380,
+      "sha256": "d64d936f0aa48912bad58c922546728c30f43990ea23c1f4d9260243d925fb8a",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/awp_boltback.mp3",
+      "bytes": 6384,
+      "sha256": "02bd35da2c8ce67709166bf0f6c42a4f82184042f40f2b4ac5a831c4b4fd2e5a",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/awp_boltforward.mp3",
+      "bytes": 4870,
+      "sha256": "6de0f0a1449a9c43eeae683b022db2d2198225f844f097e088aa90e347c57987",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/awp_clipin.mp3",
+      "bytes": 5548,
+      "sha256": "33e3f272ae3ba9237f5e17347baddeb20e23997a6d9cebe47918a9295e592f81",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/awp_clipout.mp3",
+      "bytes": 3436,
+      "sha256": "8891ea6f89a5ff5e268aedea352bf03ea15a9473e1217fb8d8db928d2d766635",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/awp_distant.mp3",
+      "bytes": 63762,
+      "sha256": "a8bb9a11d9d03d958864a76d04d3a2b31e705ec3872a78bccd1697adf47634e9",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/de_clipout.mp3",
+      "bytes": 4870,
+      "sha256": "a86c11f015063ff8c3405d521b8d398bba5a81783e2f5735bef4656d9a092bc6",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/deagle_01.mp3",
+      "bytes": 60632,
+      "sha256": "d6ed48bb9bb8e1d44b512a20979a01cca4484cb40d189deeff62202dfdb50eb6",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/deagle_02.mp3",
+      "bytes": 58007,
+      "sha256": "5f5c0f0feec6b43ebb630db9cad60a9d958012c9288820b6be1e5845fee08738",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/deagle-1-distant.mp3",
+      "bytes": 19197,
+      "sha256": "96eaeaf56ddb1971e569ca9d299e49bde1e6b2efc44c49f792eb4aa4d15464ba",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/galil_01.mp3",
+      "bytes": 44834,
+      "sha256": "f048f58da3748518ee1ee6391eab528f9ecbb30dd2e1f036784b7ea4b2bd99b3",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/galil_clipout.mp3",
+      "bytes": 4034,
+      "sha256": "099ba3070fff06af76ef5aed9f211bd0ffca556705dd0a7b5a3375041ebb1aab",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/galil_distant.mp3",
+      "bytes": 19197,
+      "sha256": "31f6e5f6aa1bf1ccae58b3b4d3dff4f068a897224cb67a9d8da15f81808b5546",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/glock_02.mp3",
+      "bytes": 29776,
+      "sha256": "9ae10a3cfef32d02dbe0c2ad6998a94a997ce9fa0a5d669f2672797b14b3dfd0",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/glock_clipin.mp3",
+      "bytes": 5393,
+      "sha256": "5860771532c86b15f0fbc5e55f6c20cf1a65543a0ff8c6e9ce57697d847f4d6e",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/glock_clipout.mp3",
+      "bytes": 5809,
+      "sha256": "7c2f272bd04e0ec9d705029a56ae5a202ed3ce60720a496dcdd1be0e6c6b9257",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/glock_slideback.mp3",
+      "bytes": 5289,
+      "sha256": "aa5d276133b33bff5abb2f456ef82a04e9957259aa88ffeabdc30346bbc0e581",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/glock_sliderelease.mp3",
+      "bytes": 4738,
+      "sha256": "e7c08c9130141cbbe4cc66d24198acf43cc8e80b27919f5e454c4b8af6c63cc5",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/glock18-1-distant.mp3",
+      "bytes": 17870,
+      "sha256": "05b14a5233c19f57d084f802fb3fe5a0a1c48f290f2c19db950acf76611ab524",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/headshot_armor_e1.mp3",
+      "bytes": 6824,
+      "sha256": "b54100e91aa18958646befef9c18abab928aad5248f8ee2bac383d4b0bac8930",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/headshot_noarmor_01.mp3",
+      "bytes": 15769,
+      "sha256": "cff894cda9ad489b61ff1dbed8f17ff58a38bcabd323bba549a64f12f4ca792b",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/headshot_noarmor_02.mp3",
+      "bytes": 25923,
+      "sha256": "e6bdf6dec7ffb526356004263840cce8b5cde7cbc3f297a651a97c56368b31fa",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/headshot_noarmor_03.mp3",
+      "bytes": 22793,
+      "sha256": "7dbbf5e17e3ff62ef362ef13642fba5d09ee7bfd832437d01b52c74875cc2483",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/kevlar_01.mp3",
+      "bytes": 4660,
+      "sha256": "1f6e180a82dd234f58dbf0cc372bebaa8b53259050b11146fd11c0867a11a2bd",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/kevlar_02.mp3",
+      "bytes": 4165,
+      "sha256": "ebe479aaec860f250914c999e8812452f24b1e7fae77a7041992c627e8ba2ce6",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/knife_hit_01.mp3",
+      "bytes": 12850,
+      "sha256": "f8e9bcbbdc5cf3fba08582ac75e68a16393535d5f59ec61790d8b87675afcbd2",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/knife_hit_light_flesh_01.mp3",
+      "bytes": 15806,
+      "sha256": "2c3fc24927f9254492f9969ecd23986788614c65726e16e2f02175141c6dc8eb",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/knife_hit_light_flesh_02.mp3",
+      "bytes": 15701,
+      "sha256": "db703764560be524e44cae82251e4b5275a1383054b861b2752e535abe70abdc",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/knife_hit_light_flesh_03.mp3",
+      "bytes": 13583,
+      "sha256": "9a09139969aeb27e6c2d28d2498c91aff187c2ecd80aec9bfe515e4eb896bceb",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/knife_swish_light_01.mp3",
+      "bytes": 4323,
+      "sha256": "57b195d6697782f5ebcb19fd74a6165bf5b9af44bd5fd4917e67f2ffdfe2f948",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/knife_swish_light_02.mp3",
+      "bytes": 5105,
+      "sha256": "298f2ff6f5e95ce519562b02dde15387e7173e88d344dcc171ab2b41b2cab00a",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/knife_swish_light_03.mp3",
+      "bytes": 4505,
+      "sha256": "73852bf73d7550680cec8031e58b8a8fef60fcfb6fc91ce6976f1112a9ba9b5b",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/m4a1_01.mp3",
+      "bytes": 43160,
+      "sha256": "962ff5320495d01054813f53555b8443975366d993551757203c1896a9f462ea",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/m4a1_02.mp3",
+      "bytes": 30591,
+      "sha256": "4aca13659fe726c51aa302507f08ecadbe92e66297ace0484a6c715c57c07abc",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/m4a1_clipin.mp3",
+      "bytes": 2210,
+      "sha256": "732c569cd2dfe9d8ed53b334671102d6b91eae20898832cbdc210afa17405193",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/m4a1_clipout.mp3",
+      "bytes": 5623,
+      "sha256": "17dcd655ee6f7807c54495a0ee0bfd8bd49a66841fdd0ae3c46db0e3149447f5",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/m4a1_distant_01.mp3",
+      "bytes": 23329,
+      "sha256": "e02b5a0b8fb3e6258e89e5c7ca14fd6ee8cf369cd421460b5b0b14bd0107f837",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/m4a1_silencer_01.mp3",
+      "bytes": 23050,
+      "sha256": "c5a84e89b8faa682499209e0cd8c1035bf9699f0678855e94f044895f5b8287f",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/m4a1_silencer_boltback.mp3",
+      "bytes": 7501,
+      "sha256": "97ab274df257b2c236cd7d555950584ab12421ef58adb995548b4f571c0d11c2",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/m4a1_silencer_boltforward.mp3",
+      "bytes": 5912,
+      "sha256": "1e87720b3a58be0670dc45e3e8ed4d71752995695ab0a87a6de0519210ec86ef",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/usp_01.mp3",
+      "bytes": 29934,
+      "sha256": "c6c678d047d520cdcd337d6d7f474621aec36a1aa99ca225a4ef49bb08278991",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/usp_02.mp3",
+      "bytes": 29339,
+      "sha256": "3dfdef2febbb17d245c92318dca2f59959e2187fedb7f8c2f8339121b2b732ae",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/usp_03.mp3",
+      "bytes": 30953,
+      "sha256": "0e39703e512d4db4732d7fe7ad556b90183c52e080d3fc309190478a4a5248e7",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/usp_clipin_02.mp3",
+      "bytes": 4165,
+      "sha256": "48f4cbcaf03bacb7c3bb976bc343553278c587720f01c96353b62de9f2bafa77",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/usp_clipout_01.mp3",
+      "bytes": 4241,
+      "sha256": "df1ce9c7ff47c7b7f3a57b807b05f4aaa79038795abaa27b66eb448cb39c4e63",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/usp_slideback_01.mp3",
+      "bytes": 3253,
+      "sha256": "3dc4f93d0909ae58f2ba305cd7a8019d0e6dc1bb418c5937ea283d229eb2a1cf",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/usp_sliderelease_01.mp3",
+      "bytes": 3774,
+      "sha256": "cd3bda4347d6bc7d52dd3c6931c714a1a92225bfb8957671f889b05faade18ac",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/vo_announcer_cs2_classic_bombdef.mp3",
+      "bytes": 21116,
+      "sha256": "ecb23a186d8ecc450d039f0a9ec8488730237f5e0e8b14df940a9111cb43eea3",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/vo_announcer_cs2_classic_bombpl.mp3",
+      "bytes": 18244,
+      "sha256": "b22dd733131567c0a422e7b27a508c43edb5e1467af357518639ecc0b4e53963",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_ak47_ak47_addammo_02.mp3",
+      "bytes": 3722,
+      "sha256": "73b899a11cfac44b06ffdf7248f01dbf9e4fac8d21f8ca28c2eb9ae1b5378e09",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_ak47_ak47_boltpull_01.mp3",
+      "bytes": 7453,
+      "sha256": "6417af8ee585c11730d9c263915bb73d0a8a76fcc4fa8aa0fc5e892773343523",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_ak47_ak47_clipout_01.mp3",
+      "bytes": 7943,
+      "sha256": "bc2f82861a5987210d0749351cfe83413d72e2632ca655f6c4a31e61ea051461",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_ak47_ak47_draw.mp3",
+      "bytes": 10038,
+      "sha256": "73b6438bcf20e38cd69a7bf4681d7fa0b1fc4ff82a4303b6b74a7b9ded7ace4d",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_ak47_ak47_inspect_f100.mp3",
+      "bytes": 14209,
+      "sha256": "70132961ab6e28ad124bbcf95194f74f1e4ad213a424eff7e87387cafa821378",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_ak47_ak47_inspect_f245.mp3",
+      "bytes": 9539,
+      "sha256": "6d6b1da23ef5ef465b7317f628e73fe6b18f8580f92a6aa9f8983d703901bf0d",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_awp_awp_boltback.mp3",
+      "bytes": 6384,
+      "sha256": "02bd35da2c8ce67709166bf0f6c42a4f82184042f40f2b4ac5a831c4b4fd2e5a",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_awp_awp_boltforward.mp3",
+      "bytes": 4870,
+      "sha256": "6de0f0a1449a9c43eeae683b022db2d2198225f844f097e088aa90e347c57987",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_awp_awp_cliphit.mp3",
+      "bytes": 3824,
+      "sha256": "b3f029c75bac0363cfc68bb20bd29a0eed37344847fca996658bc7a2dd0eb511",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_awp_awp_clipin.mp3",
+      "bytes": 5548,
+      "sha256": "33e3f272ae3ba9237f5e17347baddeb20e23997a6d9cebe47918a9295e592f81",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_awp_awp_clipout.mp3",
+      "bytes": 3436,
+      "sha256": "8891ea6f89a5ff5e268aedea352bf03ea15a9473e1217fb8d8db928d2d766635",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_awp_awp_draw.mp3",
+      "bytes": 14367,
+      "sha256": "de731156587f7fdb4ea1d7d2a66c81d6e01e2e5421c0e37a42384850c461dca8",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_c4_c4_beep2_10sec.mp3",
+      "bytes": 2000,
+      "sha256": "4897c48431998c13c8ffc133f615de0da0ee6b784789161f90315b9c07f1f81c",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_c4_c4_beep2.mp3",
+      "bytes": 2991,
+      "sha256": "de409a1b952daa42c570d7a393768bd790410e9e424aa57649d2c6e32659ad91",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_c4_c4_beep3.mp3",
+      "bytes": 3460,
+      "sha256": "719335381e7601d531cf4b67c67c6620392cf80330af8f88c42f0504467387a1",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_c4_c4_disarmfinish.mp3",
+      "bytes": 25659,
+      "sha256": "a0198bb73d1c5163942b94e80938d75e34edc42b3d00174900b6189ea398c8bc",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_c4_c4_disarmstart.mp3",
+      "bytes": 25298,
+      "sha256": "07e38cdf53a67b42f86136d6381f8dd9412d315d2c92491ea33161656401d3a9",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_c4_c4_draw_01.mp3",
+      "bytes": 7083,
+      "sha256": "97d1ff581da8292aba3137e824f99e44981cd231bbfc0f9e263c07db45c6507a",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_c4_c4_explode_close_01.mp3",
+      "bytes": 96407,
+      "sha256": "4c4affb511d32f0847daea1f99427aa38140a1abdacdbdd5ec20300a17d62ed2",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_c4_c4_plant.mp3",
+      "bytes": 5960,
+      "sha256": "aa1b84a570acaef810d8f294b3b0a81f002e68047ef0f80251f339591693b281",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_c4_c4_shockwave_debris_01.mp3",
+      "bytes": 199188,
+      "sha256": "e9cacc190e424584a5e1b33937e9427faed8907ca28871fe17297b968a2437f3",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_c4_key_press1.mp3",
+      "bytes": 4036,
+      "sha256": "2384d076c1990d5d1e54f134d507cfd6fff7d3007d4568e6c57e530b735fd2ec",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_c4_key_press2.mp3",
+      "bytes": 5211,
+      "sha256": "ce58f7ffc7faf3b82ac3ec624f8592e3a955d2e941d9a1d8f563c5263f2f84e5",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_c4_key_press3.mp3",
+      "bytes": 4687,
+      "sha256": "adec85dc8020bcdf8b2b4b313aa2593bc1af66ac02396667b17e84a67416712d",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_deagle_de_clipout.mp3",
+      "bytes": 4870,
+      "sha256": "a86c11f015063ff8c3405d521b8d398bba5a81783e2f5735bef4656d9a092bc6",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_deagle_de_draw.mp3",
+      "bytes": 15039,
+      "sha256": "270f82a413bf9d86c48bbb060c9497bf0cd9b2b442c0db9027325fa4e3bef29b",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_deagle_de_slideback.mp3",
+      "bytes": 3643,
+      "sha256": "1f1c82e76bff8a594a7e37ddd1e5a1e362cf7fb5162fa50e5be4095e4f0eac76",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_deagle_de_slideforward.mp3",
+      "bytes": 2939,
+      "sha256": "2797fe9adadc28f98e82b0948abbc91f94e0783f50e696b193156b1b5d9f8498",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_deagle_deagle_addammo_01.mp3",
+      "bytes": 2757,
+      "sha256": "d8446e08b941a31dc6103437ef122559b55a8c405adefaa6ebda44700d6ffd37",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_galilar_galil_boltback.mp3",
+      "bytes": 4115,
+      "sha256": "16588a5a1a5f6a4e13aa113a0a7422b0886857ba222fadeaba3ed6602dfe5024",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_galilar_galil_boltforward.mp3",
+      "bytes": 4662,
+      "sha256": "b00f253c53c6a4be42ed08dd446df126e85eac6bf16cf87103f8b2c795b1e747",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_galilar_galil_clipin.mp3",
+      "bytes": 4581,
+      "sha256": "b01cbfdabccb1b748436b82df84d31a0943d557e61c9f6fa7671ff67ace2b955",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_galilar_galil_clipout.mp3",
+      "bytes": 4034,
+      "sha256": "099ba3070fff06af76ef5aed9f211bd0ffca556705dd0a7b5a3375041ebb1aab",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_galilar_galil_draw.mp3",
+      "bytes": 11431,
+      "sha256": "c7712bfa7096abff194e49d55592983e274003161ade4eaa26e31cadb4c23fec",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_glock18_glock_clipin.mp3",
+      "bytes": 5393,
+      "sha256": "5860771532c86b15f0fbc5e55f6c20cf1a65543a0ff8c6e9ce57697d847f4d6e",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_glock18_glock_clipout.mp3",
+      "bytes": 5809,
+      "sha256": "7c2f272bd04e0ec9d705029a56ae5a202ed3ce60720a496dcdd1be0e6c6b9257",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_glock18_glock_draw.mp3",
+      "bytes": 15039,
+      "sha256": "270f82a413bf9d86c48bbb060c9497bf0cd9b2b442c0db9027325fa4e3bef29b",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_glock18_glock_slideback.mp3",
+      "bytes": 5289,
+      "sha256": "aa5d276133b33bff5abb2f456ef82a04e9957259aa88ffeabdc30346bbc0e581",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_glock18_glock_sliderelease.mp3",
+      "bytes": 4738,
+      "sha256": "e7c08c9130141cbbe4cc66d24198acf43cc8e80b27919f5e454c4b8af6c63cc5",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_knife_knife_hit_light_01.mp3",
+      "bytes": 8388,
+      "sha256": "3870d80ba4a8b675f5f45a22d5d9c3f2fc2c28421de97153d9855f802fb53dd4",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_knife_knife_hit_light_02.mp3",
+      "bytes": 8025,
+      "sha256": "fb28cba0a85f83c53096193e2f1e7ce0c9e775d9d3ba47184cfa4ec9beb887e1",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_knife_knife_swish_heavy_01.mp3",
+      "bytes": 4583,
+      "sha256": "f166cbf41df2e15a0aa2fb5427c897bd44047cf6dfff953525c1bd833f9625ea",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_knife_knife_swish_heavy_02.mp3",
+      "bytes": 4896,
+      "sha256": "ba824b74c91295471d34583d945bff7f3bb6ca8daa8048db2c0852da28849415",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_knife_weapon_knife_draw_small_clean_01.mp3",
+      "bytes": 8810,
+      "sha256": "6c8e251a714f38ee5e124f7a0a333cf5b908f4594c8cca3fe75e632585b81779",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_knife_weapon_knife_draw_small_clean_02.mp3",
+      "bytes": 8863,
+      "sha256": "77db0f0b4d34d16f57f446a0e3641f385d39434f4976a8a7672aa8d699e21c1f",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_m4a1_m4a1_addammo_01.mp3",
+      "bytes": 3849,
+      "sha256": "ac221b06f15d036165cdb509709cc1deacbffa53964ae38bf6f8b6dc815b91c4",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_m4a1_m4a1_cliphit.mp3",
+      "bytes": 3462,
+      "sha256": "390f14b07ee042bc2663e4a8f88792068ea11bf076dc69a3a70d1ec9266ef7b1",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_m4a1_m4a1_clipin.mp3",
+      "bytes": 2210,
+      "sha256": "732c569cd2dfe9d8ed53b334671102d6b91eae20898832cbdc210afa17405193",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_m4a1_m4a1_clipout.mp3",
+      "bytes": 5623,
+      "sha256": "17dcd655ee6f7807c54495a0ee0bfd8bd49a66841fdd0ae3c46db0e3149447f5",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_m4a1_m4a1_draw.mp3",
+      "bytes": 13262,
+      "sha256": "5d0488b57f0dde6b44f6276b73fd5c2deae0a492426315f3c5fa2a98bb97a966",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_usp_usp_addammo_01.mp3",
+      "bytes": 3066,
+      "sha256": "f242373e2fa7184269b007df6354925c4422e04df3a4194a3027ad400c86aa71",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_usp_usp_clipin_02.mp3",
+      "bytes": 4165,
+      "sha256": "48f4cbcaf03bacb7c3bb976bc343553278c587720f01c96353b62de9f2bafa77",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_usp_usp_clipout_01.mp3",
+      "bytes": 4241,
+      "sha256": "df1ce9c7ff47c7b7f3a57b807b05f4aaa79038795abaa27b66eb448cb39c4e63",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_usp_usp_draw.mp3",
+      "bytes": 15039,
+      "sha256": "270f82a413bf9d86c48bbb060c9497bf0cd9b2b442c0db9027325fa4e3bef29b",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_usp_usp_slideback_01.mp3",
+      "bytes": 3253,
+      "sha256": "3dc4f93d0909ae58f2ba305cd7a8019d0e6dc1bb418c5937ea283d229eb2a1cf",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/weapons_usp_usp_sliderelease_01.mp3",
+      "bytes": 3774,
+      "sha256": "cd3bda4347d6bc7d52dd3c6931c714a1a92225bfb8957671f889b05faade18ac",
+      "group": "audio"
+    },
+    {
+      "path": "assets/characters-cs2/animations.glb",
+      "bytes": 4802692,
+      "sha256": "993d09b839aaf541e0cede03fb6d219f346fc9773efb90ffb7eb1aa0c91fe85f",
+      "group": "characters"
+    },
+    {
+      "path": "assets/characters-cs2/ct-sas.glb",
+      "bytes": 3974156,
+      "sha256": "06fb306077ffab8f9d5fd5a9593f2fc82ed09aaf96061005299a377ad0e2da91",
+      "group": "agent"
+    },
+    {
+      "path": "assets/characters-cs2/t-phoenix.glb",
+      "bytes": 4804936,
+      "sha256": "eda1202f89846b10aac030b4f223c508a33b98c28ec197c5abdbc899e7dc179a",
+      "group": "agent"
+    },
+    {
+      "path": "assets/viewmodel/animations-manifest.json",
+      "bytes": 31218,
+      "sha256": "05268f8b6d2482500b44f02c911f1a39e34761f69b80936a9887597b83f1db2c",
+      "group": "metadata"
+    },
+    {
+      "path": "assets/viewmodel/animations.glb",
+      "bytes": 24213300,
+      "sha256": "85d272755ed243ed360f5f91895321e3dfcd0e0622b04537ec2f052aa59a76de",
+      "group": "weapons"
+    },
+    {
+      "path": "assets/viewmodel/arms.glb",
+      "bytes": 4295656,
+      "sha256": "58f2cb68f0a9cf726602f6d8535122c9720e15644014b1a756e67a058a199f3f",
+      "group": "legacy"
+    },
+    {
+      "path": "assets/weapons/cs2-loadout/ak47-vulcan.glb",
+      "bytes": 2807216,
+      "sha256": "46c540e3869bb2737d633a67c578ce9e2665eae63f1c07544793ecf8de4f558c",
+      "group": "skin"
+    },
+    {
+      "path": "assets/weapons/cs2-loadout/awp-dragon-lore.glb",
+      "bytes": 4490124,
+      "sha256": "1ac23c5e6886527fadd17b41a841f248e3d26b9af9d8e23ce3d1916afa0351c7",
+      "group": "skin"
+    },
+    {
+      "path": "assets/weapons/cs2-loadout/deagle-printstream.glb",
+      "bytes": 2023160,
+      "sha256": "68ecf39917c72ddb87f1a9704eadd1401c149a56123166dba6020493efefbe02",
+      "group": "skin"
+    },
+    {
+      "path": "assets/weapons/cs2-loadout/galilar-sugar-rush.glb",
+      "bytes": 3240860,
+      "sha256": "2d45539d51788201c5085f0f98a1d61bf0018886f21180bac01738e879e8faf9",
+      "group": "skin"
+    },
+    {
+      "path": "assets/weapons/cs2-loadout/karambit-sapphire.glb",
+      "bytes": 2877116,
+      "sha256": "a07db7b66f7bfda4174f44b95cfb32281db8102cd9bbb488fb6165728dc5cb1a",
+      "group": "skin"
+    },
+    {
+      "path": "assets/weapons/cs2-loadout/m4a4-howl.glb",
+      "bytes": 3878444,
+      "sha256": "e5a7d5f0ae0987f6e7c63100bc82ab1d6bfbc60f4ff2949599fc537607352843",
+      "group": "skin"
+    },
+    {
+      "path": "assets/weapons/cs2-loadout/pistol-fade.glb",
+      "bytes": 2919120,
+      "sha256": "50915dc3c0ca29df1aed18044b255c2f74a3c11bbe06033082aba43d31f6a439",
+      "group": "skin"
+    },
+    {
+      "path": "assets/weapons/cs2-loadout/usp-kill-confirmed.glb",
+      "bytes": 3266132,
+      "sha256": "56e56702c589f2fe173b62ae729778ab6cfad29ba5a2f24a8bb4d610bbb519cc",
+      "group": "skin"
+    },
+    {
+      "path": "assets/weapons/cs2-utility/c4.glb",
+      "bytes": 4858264,
+      "sha256": "f3a554e3a90aa9f3a7f2b3ec83fdfe6f9b2ea5fb871cf9741f32e73f2350fead",
+      "group": "utility"
+    },
+    {
+      "path": "assets/audio/footstep_concrete_000.ogg",
+      "bytes": 5808,
+      "sha256": "d7267e183067757c92c169de2a379abea592cfca6b39bb2e8feea15221ad79fe",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/footstep_concrete_001.ogg",
+      "bytes": 6308,
+      "sha256": "507a75eb19b897087855a3be3cf11a12d7fa37d143ad535eeebe0b8031c7325d",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/footstep_concrete_002.ogg",
+      "bytes": 6255,
+      "sha256": "b21fa546d74941196b25da8a20b7010abd8c05c4fcf93545d1f344e66a664e13",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/footstep_concrete_003.ogg",
+      "bytes": 5805,
+      "sha256": "8b513c2f0316324060b9174b8f28df6c2147418c506e6a53b77f18e149a5547b",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/footstep_concrete_004.ogg",
+      "bytes": 5912,
+      "sha256": "24dd8db2413e5b81ad181e1205c12a1c7801da5f85715d471b92a4b2f632e45e",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/vo_announcer_cs2_classic_ctwin.mp3",
+      "bytes": 24324,
+      "sha256": "913181ad352882b000a09edc67259403dcb88abac2463faad5b689196a0aad91",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/vo_announcer_cs2_classic_terwin.mp3",
+      "bytes": 18431,
+      "sha256": "8cd76dacfedccbb212b8e8a63760ad1bb2ba3f9b22e0807c74fab48e98b8af29",
+      "group": "audio"
+    }
+  ],
+  "valveWorkshop": {
+    "url": "https://media.steampowered.com/apps/csgo/images/workshop/workshop/cs2_weapon_model_geometry.zip",
+    "bytes": 27251170,
+    "sha256": "f06ed57135a3875658eaee4175c46b203d4c91f83a7f287ef6663dee11b79bbe",
+    "entry": "weapon_rif_famas.obj"
+  }
+}

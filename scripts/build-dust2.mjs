@@ -84,7 +84,8 @@ function descriptor(material) {
   const overlay = m.alphaMode === 'BLEND' || !!flags.F_OVERLAY || vmat.ShaderName === 'csgo_static_overlay.vfx';
   const visible = !flags.F_DEPTH_FEATHER && !/materials\/tools\//.test(vmat.Name || '');
   const sampler = gltf.samplers?.[texture?.sampler] || {};
-  const value = { wrapS: sampler.wrapS || 10497, wrapT: sampler.wrapT || 10497, type: materialTypes[material], mask: ['MASK', 'BLEND'].includes(m.alphaMode) ? (maskIds.get(image) ?? -1) : -1, cutoff: m.alphaCutoff ?? .5, doubleSided: !!m.doubleSided, overlay, bias: !!flags.F_DEPTH_BIAS || overlay, visible, collidable: visible && !overlay && materialTypes[material] !== 4 };
+  const depthLayer = overlay ? 4 : flags.F_DEPTH_BIAS ? 3 : flags.F_DECAL_TEXTURE ? (materialTypes[material] === 1 ? 2 : 1) : 0;
+  const value = { depthLayer, wrapS: sampler.wrapS || 10497, wrapT: sampler.wrapT || 10497, type: materialTypes[material], mask: ['MASK', 'BLEND'].includes(m.alphaMode) ? (maskIds.get(image) ?? -1) : -1, cutoff: m.alphaCutoff ?? .5, doubleSided: !!m.doubleSided, overlay, bias: depthLayer > 0, visible, collidable: visible && !overlay && materialTypes[material] !== 4 };
   const key = JSON.stringify(value);
   if (!descriptorIds.has(key)) { descriptorIds.set(key, descriptors.length); descriptors.push(value); }
   return descriptorIds.get(key);

@@ -8,7 +8,9 @@
     "start": "node server.js",
     "test": "node --test test/*.test.js",
     "map:source": "node scripts/fetch-map.mjs",
-    "map:build": "node scripts/build-dust2.mjs"
+    "map:build": "node scripts/build-dust2.mjs",
+    "game:fetch": "node scripts/fetch-game-assets.mjs",
+    "game:build": "node scripts/build-game-assets.mjs && node scripts/build-famas.cjs"
   },
   "engines": {
     "node": ">=20.9.0"

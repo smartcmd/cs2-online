@@ -26,3 +26,18 @@ npm test
 ```
 
 `.cache/` 不进入 Git 和 Docker 镜像，HTTP 服务也不提供源模型和源贴图。场景使用 D2L1 无损源坐标编码、原变换矩阵、差分索引和 gzip，解码器位于 `shared/dust2-mesh.js`。碰撞来自导出网格；材质、角色运动和玩法仍属于网页版实现，未导入 Source 2 的全部物理与穿透规则。竞技性约束见 `AGENTS.md`，新增测试禁止通过删面或降低坐标精度缩小文件。
+
+## 人物、武器与音效
+
+`public/game/` 包含 SAS、Phoenix、第一人称手臂、九种武器与 C4 资源，以及行走、下蹲、切枪、开火和换弹动画。贴图最长边为 512 像素，采用 WebP。GLB 保留源网格和骨骼，打包时移除未使用的动画轨道数据。服务器以 gzip 传输 GLB，整组模型、动画和音效的首次传输约 9.55 MiB，加上地图约 35 MiB。
+
+- 人物、手臂、武器皮肤、动画及 CS2 音效来自上述固定版本的 apich/cs2-web 资源导出。下载地址和逐文件 SHA-256 记录于 `config/game-assets-source.json`，几何、音效与皮肤权利归 Valve 及各自创作者所有。
+- FAMAS 使用 [Valve Workshop Resources](https://www.counter-strike.net/workshop/workshopresources) 提供的 `cs2_weapon_model_geometry.zip` 中的 `weapon_rif_famas.obj`，配合本项目的简易金属材质。它使用 M4A4 的手臂动作和通用步枪音效，尚未还原 FAMAS 独立的枪机、弹匣动画。
+- 五种混凝土脚步声来自该资源导出中的 Kenney 音效。枪声、换弹声、命中声、C4 音效和四句回合播报使用 CS2 录音，其余提示仍有合成音效。
+
+服务器按模拟中的武器参数判定射速、伤害和换弹时间。第一人称动画按这些时间播放，第三人称头部挂点跟随模拟中的头部中心。角色视觉模型与胶囊及球形命中区域仍有轮廓差异。
+
+```sh
+npm run game:fetch  # 下载并校验模型、音效和 Valve Workshop 几何
+npm run game:build  # 缩小贴图、整理动画并生成 public/game/
+```

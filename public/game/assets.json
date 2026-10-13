@@ -1,0 +1,267 @@
+{
+  "source": "Valve CS2 assets; see ASSETS.md",
+  "weapons": [
+    "ak47",
+    "awp",
+    "m4a4",
+    "galil",
+    "deagle",
+    "glock",
+    "usp",
+    "knife",
+    "c4",
+    "famas"
+  ],
+  "files": [
+    {
+      "name": "ak47.glb",
+      "bytes": 1258412,
+      "sha256": "f79054124cc221fe1fe28bbf621b04d5e734524ecbe27ce6b0431ddeb79fb81d"
+    },
+    {
+      "name": "ak47_01.mp3",
+      "bytes": 39580,
+      "sha256": "043273a40f6e18232f01717a0e12a1591f9b2eab92eab9fc260730763b30df2a"
+    },
+    {
+      "name": "ak47_02.mp3",
+      "bytes": 34734,
+      "sha256": "dfa3945564ffcf2525a4ca2f008bc3f50a51e8dc1bf1f298a3f83e0d33d50123"
+    },
+    {
+      "name": "ak47_boltpull_01.mp3",
+      "bytes": 7453,
+      "sha256": "6417af8ee585c11730d9c263915bb73d0a8a76fcc4fa8aa0fc5e892773343523"
+    },
+    {
+      "name": "ak47_clipout_01.mp3",
+      "bytes": 7943,
+      "sha256": "bc2f82861a5987210d0749351cfe83413d72e2632ca655f6c4a31e61ea051461"
+    },
+    {
+      "name": "arms.glb",
+      "bytes": 780700,
+      "sha256": "1f82f372acfc5d63ede59468cdec407974438c00add04cd66c24e9eda7a974b8"
+    },
+    {
+      "name": "awp.glb",
+      "bytes": 2160308,
+      "sha256": "c3d5da3bace46db3095def51b73f3be76fba29ab239797860c4aa31d7cc9509d"
+    },
+    {
+      "name": "awp_01.mp3",
+      "bytes": 62616,
+      "sha256": "4ead729cc949cf344084b5540e83c02af16928fccb5414270c338dcbb9747d28"
+    },
+    {
+      "name": "awp_boltforward.mp3",
+      "bytes": 4870,
+      "sha256": "6de0f0a1449a9c43eeae683b022db2d2198225f844f097e088aa90e347c57987"
+    },
+    {
+      "name": "awp_clipin.mp3",
+      "bytes": 5548,
+      "sha256": "33e3f272ae3ba9237f5e17347baddeb20e23997a6d9cebe47918a9295e592f81"
+    },
+    {
+      "name": "awp_clipout.mp3",
+      "bytes": 3436,
+      "sha256": "8891ea6f89a5ff5e268aedea352bf03ea15a9473e1217fb8d8db928d2d766635"
+    },
+    {
+      "name": "c4.glb",
+      "bytes": 1463736,
+      "sha256": "22851b78c6e3d2c45f2f4061ceac223144a0d21907caaa5385a1f67097034b05"
+    },
+    {
+      "name": "ct.glb",
+      "bytes": 1491508,
+      "sha256": "cf139be919838f92791f3e7e61ecefeefef2f0b002bf121e13f3dd85ef100ed3"
+    },
+    {
+      "name": "de_clipout.mp3",
+      "bytes": 4870,
+      "sha256": "a86c11f015063ff8c3405d521b8d398bba5a81783e2f5735bef4656d9a092bc6"
+    },
+    {
+      "name": "deagle.glb",
+      "bytes": 1028540,
+      "sha256": "f5ca7d551583c68b7c9860a496d6542b650c482caa1782353b34477d74b7b61a"
+    },
+    {
+      "name": "deagle_01.mp3",
+      "bytes": 60632,
+      "sha256": "d6ed48bb9bb8e1d44b512a20979a01cca4484cb40d189deeff62202dfdb50eb6"
+    },
+    {
+      "name": "footstep_concrete_000.ogg",
+      "bytes": 5808,
+      "sha256": "d7267e183067757c92c169de2a379abea592cfca6b39bb2e8feea15221ad79fe"
+    },
+    {
+      "name": "footstep_concrete_001.ogg",
+      "bytes": 6308,
+      "sha256": "507a75eb19b897087855a3be3cf11a12d7fa37d143ad535eeebe0b8031c7325d"
+    },
+    {
+      "name": "footstep_concrete_002.ogg",
+      "bytes": 6255,
+      "sha256": "b21fa546d74941196b25da8a20b7010abd8c05c4fcf93545d1f344e66a664e13"
+    },
+    {
+      "name": "footstep_concrete_003.ogg",
+      "bytes": 5805,
+      "sha256": "8b513c2f0316324060b9174b8f28df6c2147418c506e6a53b77f18e149a5547b"
+    },
+    {
+      "name": "footstep_concrete_004.ogg",
+      "bytes": 5912,
+      "sha256": "24dd8db2413e5b81ad181e1205c12a1c7801da5f85715d471b92a4b2f632e45e"
+    },
+    {
+      "name": "galil.glb",
+      "bytes": 879888,
+      "sha256": "45c22054028768c267894cc593dfe0d26f23efe7146f19faf5e66f76ad032525"
+    },
+    {
+      "name": "galil_01.mp3",
+      "bytes": 44834,
+      "sha256": "f048f58da3748518ee1ee6391eab528f9ecbb30dd2e1f036784b7ea4b2bd99b3"
+    },
+    {
+      "name": "glock.glb",
+      "bytes": 1192080,
+      "sha256": "8f08eb38c5d44e090f99d3a2a0e2cb6b64a10c4f33be6a2f98e8acfd00ab45c9"
+    },
+    {
+      "name": "glock_02.mp3",
+      "bytes": 29776,
+      "sha256": "9ae10a3cfef32d02dbe0c2ad6998a94a997ce9fa0a5d669f2672797b14b3dfd0"
+    },
+    {
+      "name": "glock_clipin.mp3",
+      "bytes": 5393,
+      "sha256": "5860771532c86b15f0fbc5e55f6c20cf1a65543a0ff8c6e9ce57697d847f4d6e"
+    },
+    {
+      "name": "glock_clipout.mp3",
+      "bytes": 5809,
+      "sha256": "7c2f272bd04e0ec9d705029a56ae5a202ed3ce60720a496dcdd1be0e6c6b9257"
+    },
+    {
+      "name": "headshot_armor_e1.mp3",
+      "bytes": 6824,
+      "sha256": "b54100e91aa18958646befef9c18abab928aad5248f8ee2bac383d4b0bac8930"
+    },
+    {
+      "name": "kevlar_01.mp3",
+      "bytes": 4660,
+      "sha256": "1f6e180a82dd234f58dbf0cc372bebaa8b53259050b11146fd11c0867a11a2bd"
+    },
+    {
+      "name": "knife.glb",
+      "bytes": 1135556,
+      "sha256": "91df34c299c95b93dacecd534652806e13af314cb16624669acaee3bfa61ff9d"
+    },
+    {
+      "name": "knife_hit_01.mp3",
+      "bytes": 12850,
+      "sha256": "f8e9bcbbdc5cf3fba08582ac75e68a16393535d5f59ec61790d8b87675afcbd2"
+    },
+    {
+      "name": "knife_swish_light_01.mp3",
+      "bytes": 4323,
+      "sha256": "57b195d6697782f5ebcb19fd74a6165bf5b9af44bd5fd4917e67f2ffdfe2f948"
+    },
+    {
+      "name": "m4a1_01.mp3",
+      "bytes": 43160,
+      "sha256": "962ff5320495d01054813f53555b8443975366d993551757203c1896a9f462ea"
+    },
+    {
+      "name": "m4a1_clipin.mp3",
+      "bytes": 2210,
+      "sha256": "732c569cd2dfe9d8ed53b334671102d6b91eae20898832cbdc210afa17405193"
+    },
+    {
+      "name": "m4a1_clipout.mp3",
+      "bytes": 5623,
+      "sha256": "17dcd655ee6f7807c54495a0ee0bfd8bd49a66841fdd0ae3c46db0e3149447f5"
+    },
+    {
+      "name": "m4a4.glb",
+      "bytes": 1838480,
+      "sha256": "6a96b0dafab65dcf83dc53e9f84c9e145445a0f02c57befd4ee68d8678db5984"
+    },
+    {
+      "name": "player-animations.glb",
+      "bytes": 3769028,
+      "sha256": "2cfbe15b5bdf8239da2c0ae963c40f97e395aacccd3aa6e45778fdb60853fee3"
+    },
+    {
+      "name": "t.glb",
+      "bytes": 1524900,
+      "sha256": "168e3506a43e8055743e862239ffa4a571d11e28b16dda364c4ddb76cb5644e1"
+    },
+    {
+      "name": "usp.glb",
+      "bytes": 1233116,
+      "sha256": "cc18d3f48580e39c4cbdd64cfae81db1b846c321329beb8e0c27389bbaba6c19"
+    },
+    {
+      "name": "usp_01.mp3",
+      "bytes": 29934,
+      "sha256": "c6c678d047d520cdcd337d6d7f474621aec36a1aa99ca225a4ef49bb08278991"
+    },
+    {
+      "name": "usp_clipin_02.mp3",
+      "bytes": 4165,
+      "sha256": "48f4cbcaf03bacb7c3bb976bc343553278c587720f01c96353b62de9f2bafa77"
+    },
+    {
+      "name": "usp_clipout_01.mp3",
+      "bytes": 4241,
+      "sha256": "df1ce9c7ff47c7b7f3a57b807b05f4aaa79038795abaa27b66eb448cb39c4e63"
+    },
+    {
+      "name": "vo_announcer_cs2_classic_bombdef.mp3",
+      "bytes": 21116,
+      "sha256": "ecb23a186d8ecc450d039f0a9ec8488730237f5e0e8b14df940a9111cb43eea3"
+    },
+    {
+      "name": "vo_announcer_cs2_classic_bombpl.mp3",
+      "bytes": 18244,
+      "sha256": "b22dd733131567c0a422e7b27a508c43edb5e1467af357518639ecc0b4e53963"
+    },
+    {
+      "name": "vo_announcer_cs2_classic_ctwin.mp3",
+      "bytes": 24324,
+      "sha256": "913181ad352882b000a09edc67259403dcb88abac2463faad5b689196a0aad91"
+    },
+    {
+      "name": "vo_announcer_cs2_classic_terwin.mp3",
+      "bytes": 18431,
+      "sha256": "8cd76dacfedccbb212b8e8a63760ad1bb2ba3f9b22e0807c74fab48e98b8af29"
+    },
+    {
+      "name": "weapon-animations.glb",
+      "bytes": 4758080,
+      "sha256": "c635b49b90000c44ccbd846cf21f7dc8437cd9c4c42d23b7d0de5c52f8821938"
+    },
+    {
+      "name": "weapons_c4_c4_beep2.mp3",
+      "bytes": 2991,
+      "sha256": "de409a1b952daa42c570d7a393768bd790410e9e424aa57649d2c6e32659ad91"
+    },
+    {
+      "name": "weapons_c4_c4_explode_close_01.mp3",
+      "bytes": 96407,
+      "sha256": "4c4affb511d32f0847daea1f99427aa38140a1abdacdbdd5ec20300a17d62ed2"
+    },
+    {
+      "name": "famas.glb",
+      "bytes": 3156892,
+      "sha256": "ca3354e5aab80127d24553e148528b72e0d626a8de21e724840f8efadffdfd2e"
+    }
+  ]
+}

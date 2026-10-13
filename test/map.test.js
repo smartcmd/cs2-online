@@ -22,7 +22,9 @@ test('original spawn positions have standing clearance on the source-map floor',
   for (const team of ['CT', 'T']) for (const spawn of Sim.MAP.spawns[team]) {
     const floor = Sim.World.floor(spawn.x, spawn.z, spawn.y + .6, 2);
     assert.notEqual(floor, null, team);
-    assert.equal(Sim.collides(spawn.x, floor + .005, spawn.z, 1.8), false, team);
+    const support = Sim.World.support(spawn.x, spawn.z, floor, .5, .05);
+    assert.notEqual(support, null, team);
+    assert.equal(Sim.collides(spawn.x, support, spawn.z, 1.8), false, team);
   }
 });
 
@@ -51,6 +53,19 @@ test('ground rays agree with the same mesh used for movement', () => {
   assert.ok(hit); assert.ok(Math.abs(hit.t - 1.6) < .001);
   assert.equal(hit.axis, 1);
   assert.equal(Sim.siteAt(30, -67, -3), null, 'CT underpass is not the elevated A plant zone');
+});
+
+test('standing still on source-map ramps preserves position at different tick rates', () => {
+  for (const [x, z] of [[18.0149, -56.2356], [36.8268, -10.4013]]) for (const fps of [30, 60, 120]) {
+    const floor = Sim.World.floor(x, z, 10, 25);
+    assert.notEqual(floor, null);
+    const p = { pos: { x, y: floor, z }, vel: Sim.V(), onGround: true };
+    for (let i = 0; i < 5; i++) Sim.World.move(p, 1 / fps, 1.8);
+    const rest = { ...p.pos };
+    for (let i = 0; i < fps * 5; i++) Sim.World.move(p, 1 / fps, 1.8);
+    assert.ok(Math.hypot(p.pos.x - rest.x, p.pos.y - rest.y, p.pos.z - rest.z) < .001);
+    assert.ok(p.onGround);
+  }
 });
 
 test('A-site crate sides retain both movement and bullet cover', () => {

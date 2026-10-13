@@ -72,6 +72,13 @@ test('map transfers compressed geometry and never serves the source texture libr
   assert.equal(Buffer.from(await res.arrayBuffer()).subarray(0, 4).toString(), 'D2L1');
   assert.equal((await fetch(s.url + '/assets/map-cs2/dust2-web.gltf')).status, 404);
   for (const route of ['/dust2-world.js', '/dust2-mesh.js', '/dust2-data.js', '/bvh.js']) assert.equal((await fetch(s.url + route)).status, 200);
+  const game = await (await fetch(s.url + '/game/assets.json')).json();
+  const model = game.files.find(f => f.name === 'ak47.glb');
+  const gun = await fetch(s.url + '/game/' + model.name);
+  assert.equal(gun.headers.get('content-encoding'), 'gzip');
+  assert.equal((await gun.arrayBuffer()).byteLength, model.bytes);
+  assert.equal((await fetch(s.url + '/game/' + model.name, { headers: { 'If-None-Match': gun.headers.get('etag') } })).status, 304);
+  assert.equal((await fetch(s.url + '/game/ak47_01.mp3')).headers.get('content-type'), 'audio/mpeg');
 });
 
 test('ten players join, teams cap at five, eleventh is rejected, empty room is removed', async t => {

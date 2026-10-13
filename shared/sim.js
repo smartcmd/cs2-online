@@ -60,9 +60,14 @@ function drive(e, wx, wz, maxSpd, dt) {
 }
 // player movement: identical on server and in client prediction
 const K = { W: 1, S: 2, A: 4, D: 8, JUMP: 16, CROUCH: 32, WALK: 64, USE: 128 };
+function updateCrouch(e, target, factor) {
+  const next = e.crouch + (target - e.crouch) * factor;
+  if (next < e.crouch && World.blocked(e.pos.x, e.pos.y, e.pos.z, 1.8 - .45 * next)) return;
+  e.crouch = next;
+}
 function moveHuman(e, dt, k, locked) {
   const cr = (k & K.CROUCH) || locked === 2 ? 1 : 0;
-  e.crouch += (cr - e.crouch) * Math.min(1, dt * 10);
+  updateCrouch(e, cr, Math.min(1, dt * 10));
   let f = (k & K.W ? 1 : 0) - (k & K.S ? 1 : 0), s = (k & K.D ? 1 : 0) - (k & K.A ? 1 : 0);
   if (locked) f = s = 0;
   const L = Math.hypot(f, s) || 1; f /= L; s /= L;
@@ -636,8 +641,8 @@ function updateBot(b, dt) {
       } else b.planting = 0;
     }
   }
-  b.crouch += ((mv.crouch ? 1 : 0) - b.crouch) * Math.min(1, dt * 8);
-  drive(b, mv.x, mv.z, w.def.speed * (b.scoped && w.def.scope ? .5 : 1) * (mv.crouch ? .34 : 1) * mv.speed, dt);
+  updateCrouch(b, mv.crouch ? 1 : 0, Math.min(1, dt * 8));
+  drive(b, mv.x, mv.z, w.def.speed * (b.scoped && w.def.scope ? .5 : 1) * (b.crouch > .5 ? .34 : 1) * mv.speed, dt);
 }
 function separate() {
   const E = G.ents;
@@ -762,7 +767,8 @@ function spawnEnt(e, fresh) {
   const mates = G.ents.filter(o => o.team === e.team && o.alive && o !== e).length;
   const spawns = MAP.spawns[e.team];
   const cp = spawns.find(p => !G.ents.some(o => o !== e && o.alive && dist2D(o.pos, p) < .9)) || spawns[mates % spawns.length];
-  vset(e.pos, cp.x, (World.floor(cp.x, cp.z, cp.y + .5, 2) ?? cp.y) + .005, cp.z); vset(e.vel, 0, 0, 0);
+  const floor = World.floor(cp.x, cp.z, cp.y + .5, 2) ?? cp.y;
+  vset(e.pos, cp.x, World.support(cp.x, cp.z, floor, .5, .05) ?? floor + .005, cp.z); vset(e.vel, 0, 0, 0);
   e.alive = true; e.hp = 100; e.crouch = 0; e.onGround = true; e.hasBomb = false; e.planting = 0; e.scoped = 0;
   e.yaw = cp.yaw; e.pitch = 0; e.reloadEnd = 0; e.drawEnd = 0; e.recoilIdx = 0; e.nextFire = 0;
   e.slot = 0; switchSlot(e, e.weapons[1] ? 1 : 2); e.lastSlot = 3; e.teleported = (e.teleported || 0) + 1;
