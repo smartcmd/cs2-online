@@ -1,0 +1,28 @@
+# Fly.io 配置。app 名字全球唯一，部署前改成你自己的。
+app = "cs2-web-online-change-me"
+primary_region = "nrt"   # 东京；其他可选：sin 新加坡、lax 洛杉矶、fra 法兰克福
+
+[build]
+
+[env]
+  NODE_ENV = "production"
+  PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # 房间保存在内存里，必须始终只跑一台机器，并且不能自动休眠
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    grace_period = "5s"
+    interval = "15s"
+    method = "GET"
+    path = "/healthz"
+    timeout = "2s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

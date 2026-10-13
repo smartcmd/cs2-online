@@ -1,0 +1,11 @@
+# Render Blueprint：在 Render 控制台选 New > Blueprint，指向这个仓库即可。
+services:
+  - type: web
+    name: cs2-web-online
+    runtime: docker
+    plan: starter        # 免费版闲置 15 分钟会休眠，房间会丢失；长期在线请用付费档
+    healthCheckPath: /healthz
+    numInstances: 1      # 房间保存在内存里，只能跑一个实例
+    envVars:
+      - key: NODE_ENV
+        value: production

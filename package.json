@@ -1,0 +1,10 @@
+{
+  "name": "cs2-web-online",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CS2 网页版：浏览器多人爆破模式（服务器权威 + 机器人补位）",
+  "main": "server.js",
+  "scripts": { "start": "node server.js", "test": "node --test test/*.test.js" },
+  "engines": { "node": ">=18" },
+  "dependencies": { "three": "0.128.0", "ws": "^8.18.0" }
+}
