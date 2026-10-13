@@ -62,6 +62,18 @@ test('HTTP serves the client, shared simulation and health endpoint', async t =>
   assert.deepEqual(await rooms(s), []);
 });
 
+test('map transfers compressed geometry and never serves the source texture library', async t => {
+  const s = await start(t);
+  const info = await (await fetch(s.url + '/maps/dust2.json')).json();
+  const file = info.files.find(f => f.name === 'dust2.mesh.gz');
+  const res = await fetch(s.url + '/maps/' + file.name);
+  assert.equal(res.status, 200); assert.equal(res.headers.get('content-encoding'), 'gzip');
+  assert.equal(Number(res.headers.get('content-length')), file.bytes);
+  assert.equal(Buffer.from(await res.arrayBuffer()).subarray(0, 4).toString(), 'D2M3');
+  assert.equal((await fetch(s.url + '/assets/map-cs2/dust2-web.gltf')).status, 404);
+  for (const route of ['/dust2-world.js', '/dust2-mesh.js', '/dust2-data.js', '/bvh.js']) assert.equal((await fetch(s.url + route)).status, 200);
+});
+
 test('ten players join, teams cap at five, eleventh is rejected, empty room is removed', async t => {
   const s = await start(t), clients = [], teams = [];
   for (let i = 0; i < 11; i++) {

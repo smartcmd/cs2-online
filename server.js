@@ -3,6 +3,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { gzipSync } = require('node:zlib');
 const { WebSocketServer } = require('ws');
 const Sim = require('./shared/sim.js');
 
@@ -14,17 +15,34 @@ const FILES = {
   '/': [path.join(__dirname, 'public/index.html'), 'text/html; charset=utf-8'],
   '/index.html': [path.join(__dirname, 'public/index.html'), 'text/html; charset=utf-8'],
   '/sim.js': [path.join(__dirname, 'shared/sim.js'), 'text/javascript; charset=utf-8'],
+  '/dust2-data.js': [path.join(__dirname, 'shared/dust2-data.js'), 'text/javascript; charset=utf-8'],
+  '/dust2-world.js': [path.join(__dirname, 'shared/dust2-world.js'), 'text/javascript; charset=utf-8'],
+  '/dust2-mesh.js': [path.join(__dirname, 'shared/dust2-mesh.js'), 'text/javascript; charset=utf-8'],
+  '/bvh.js': [require.resolve('three-mesh-bvh'), 'text/javascript; charset=utf-8'],
   '/three.min.js': [require.resolve('three/build/three.min.js'), 'text/javascript; charset=utf-8'],
 };
+const mapAssets = new Map(require('./public/maps/dust2.json').files.map(f => ['/maps/' + f.name, f]));
+FILES['/maps/dust2.json'] = [path.join(__dirname, 'public/maps/dust2.json'), 'application/json'];
 const cache = new Map();
-function serveFile(res, file, type) {
-  let body = cache.get(file);
-  if (!body || process.env.NODE_ENV !== 'production') { body = fs.readFileSync(file); cache.set(file, body); }
-  res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-cache', 'Content-Length': body.length });
+function serveFile(req, res, file, type) {
+  const compressed = /\bgzip\b/.test(req.headers['accept-encoding'] || '');
+  const key = file + (compressed ? ':gzip' : ':plain');
+  let body = cache.get(key);
+  if (!body || process.env.NODE_ENV !== 'production') { body = fs.readFileSync(file); if (compressed) body = gzipSync(body); cache.set(key, body); }
+  res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-cache', 'Content-Length': body.length, 'Vary': 'Accept-Encoding', ...(compressed ? { 'Content-Encoding': 'gzip' } : {}) });
   res.end(body);
 }
 const server = http.createServer((req, res) => {
   const url = (req.url || '/').split('?')[0];
+  if (mapAssets.has(url) && req.method === 'GET') {
+    const asset = mapAssets.get(url), file = path.join(__dirname, 'public/maps', asset.name);
+    const type = url.endsWith('.webp') ? 'image/webp' : 'application/octet-stream';
+    if (!fs.existsSync(file)) { res.writeHead(404); return res.end('Map asset missing; run npm run map:build'); }
+    const etag = '"' + asset.sha256 + '"';
+    if (req.headers['if-none-match'] === etag) { res.writeHead(304); return res.end(); }
+    res.writeHead(200, { 'Content-Type': type, 'Content-Length': fs.statSync(file).size, 'Cache-Control': 'public, max-age=3600', 'ETag': etag, ...(url.endsWith('.gz') ? { 'Content-Encoding': 'gzip' } : {}) });
+    const stream = fs.createReadStream(file); stream.on('error', () => res.destroy()); stream.pipe(res); return;
+  }
   if (url === '/favicon.ico') { res.writeHead(204); return res.end(); }
   if (url === '/healthz') { res.writeHead(200, { 'Content-Type': 'text/plain' }); return res.end('ok'); }
   if (url === '/rooms') {
@@ -33,7 +51,7 @@ const server = http.createServer((req, res) => {
     return res.end(JSON.stringify(list));
   }
   const f = FILES[url];
-  if (f && req.method === 'GET') { try { return serveFile(res, f[0], f[1]); } catch (e) { res.writeHead(500); return res.end('error'); } }
+  if (f && req.method === 'GET') { try { return serveFile(req, res, f[0], f[1]); } catch (e) { res.writeHead(500); return res.end('error'); } }
   res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end('not found');
 });
 

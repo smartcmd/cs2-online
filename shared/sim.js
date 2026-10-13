@@ -17,91 +17,42 @@ const vcopy = (v, o) => { v.x = o.x; v.y = o.y; v.z = o.z; return v; };
 const r2 = n => Math.round(n * 100) / 100;
 Object.assign(Sim, { rand, clamp, DEG, angDiff, dist2D, dirFromAngles, V, vset, vcopy, pick });
 
-// ---------- map (2m cells) ----------
-const CELL = 2, COLS = 50, ROWS = 42, OX = -COLS * CELL / 2, OZ = -ROWS * CELL / 2;
-const grid = []; for (let r = 0; r < ROWS; r++) grid.push(new Array(COLS).fill('#'));
-function carve(c0, r0, c1, r1, ch) { for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) grid[r][c] = ch || '.'; }
-function put(list, ch) { for (const [c, r] of list) grid[r][c] = ch; }
-carve(19, 2, 31, 8); carve(16, 6, 21, 9); carve(2, 2, 15, 13, 'b'); carve(32, 4, 32, 7); carve(33, 2, 47, 13, 'a');
-carve(22, 9, 27, 31); carve(28, 16, 32, 18); carve(33, 14, 36, 18); carve(41, 14, 46, 32); carve(36, 30, 40, 33);
-carve(14, 32, 38, 39); carve(9, 26, 20, 30); carve(14, 31, 20, 31); carve(3, 14, 8, 30); carve(17, 22, 21, 25);
-put([[22, 11], [23, 11], [22, 12], [23, 12], [26, 11], [27, 11], [26, 12], [27, 12]], '#');
-put([[39, 6], [40, 6], [39, 7], [40, 7], [45, 3], [46, 3], [44, 11], [3, 11], [12, 10], [13, 10], [5, 5], [6, 5], [5, 6], [6, 6], [43, 23], [44, 23], [18, 35], [32, 36], [28, 3]], 'C');
-put([[38, 7], [35, 10], [7, 6], [10, 3], [24, 19], [25, 19], [45, 16], [19, 35], [21, 4], [12, 28], [30, 18]], 'c');
-const tile = (c, r) => (c < 0 || r < 0 || c >= COLS || r >= ROWS) ? '#' : grid[r][c];
-const walkable = (c, r) => { const t = tile(c, r); return t !== '#' && t !== 'C' && t !== 'c'; };
-const cellOf = (x, z) => [clamp(Math.floor((x - OX) / CELL), 0, COLS - 1), clamp(Math.floor((z - OZ) / CELL), 0, ROWS - 1)];
-const cellPos = (c, r) => ({ x: OX + (c + 0.5) * CELL, z: OZ + (r + 0.5) * CELL });
-function siteAt(x, z) { const [c, r] = cellOf(x, z); const t = tile(c, r); return t === 'a' ? 'A' : t === 'b' ? 'B' : null; }
-const SPAWN = { CT: [[23, 3], [25, 3], [27, 4], [24, 5], [26, 6]], T: [[22, 36], [24, 37], [26, 36], [28, 37], [30, 36]] };
+// ---------- original Dust II coordinates ----------
+const World = typeof module !== 'undefined' && module.exports ? require('./dust2-world') : root.Dust2World;
+const MAP = World.data;
+const CELL = 1, OX = -57, OZ = -81, COLS = 104, ROWS = 112;
+const cellOf = (x, z) => [Math.floor((x - OX) / CELL), Math.floor((z - OZ) / CELL)];
+const mark = (x, z) => [(x - OX) / CELL - .5, (z - OZ) / CELL - .5];
+const cellPos = (c, r) => {
+  const x = OX + (c + .5) * CELL, z = OZ + (r + .5) * CELL;
+  const n = World.nearest(x, z); return { x: n.x, y: n.y, z: n.z };
+};
+const grid = Array.from({ length: ROWS }, () => Array(COLS).fill('#'));
+for (const n of MAP.nav) { const [c, r] = cellOf(n.x, n.z); if (grid[r] && c >= 0 && c < COLS) grid[r][c] = '.'; }
+const tile = (c, r) => grid[r] && grid[r][c] || '#';
+const walkable = (c, r) => tile(c, r) !== '#';
+function siteAt(x, z, y) {
+  for (const id of ['A', 'B']) { const s = MAP.sites[id]; if (Math.hypot(x - s.x, z - s.z) < s.radius && (y === undefined || Math.abs(y - s.y) < 1.6)) return id; }
+  return null;
+}
+const SPAWN = Object.fromEntries(['CT', 'T'].map(t => [t, MAP.spawns[t].map(p => mark(p.x, p.z))]));
 const SITES = {
-  A: { center: [40, 8], plant: [42, 9], guardWatch: [32, 5], holds: [{ c: [45, 6], w: [43, 16] }, { c: [36, 6], w: [34, 16] }, { c: [41, 11], w: [44, 20] }] },
-  B: { center: [8, 8], plant: [9, 8], guardWatch: [17, 8], holds: [{ c: [4, 4], w: [5, 16] }, { c: [11, 7], w: [5, 15] }, { c: [14, 12], w: [6, 16] }] },
+  A: { center: mark(30, -67), plant: mark(30, -66), guardWatch: mark(35, -47), holds: [{ c: mark(33, -70), w: mark(40, -48) }, { c: mark(21, -66), w: mark(12, -43) }, { c: mark(39, -61), w: mark(40, -32) }] },
+  B: { center: mark(-40, -67), plant: mark(-40, -66), guardWatch: mark(-28, -60), holds: [{ c: mark(-49, -68), w: mark(-43, -46) }, { c: mark(-36, -73), w: mark(-43, -47) }, { c: mark(-34, -59), w: mark(-20, -55) }] },
 };
-const MID_HOLD = { c: [24, 6], w: [24, 20] };
+const MID_HOLD = { c: mark(-8, -47), w: mark(-11, -24) };
 const ROUTES = {
-  A: [[[38, 32], [43, 28], [43, 18], [42, 10]], [[24, 28], [24, 16], [30, 17], [34, 15], [40, 10]]],
-  B: [[[17, 30], [11, 28], [5, 22], [6, 14], [8, 8]], [[24, 30], [24, 26], [19, 23], [15, 28], [5, 24], [6, 14], [8, 8]]],
+  A: [[[15, 5], [29, 0], [40, -15], [40, -45], [30, -66]], [[-10, -15], [-5, -30], [6, -36], [15, -49], [30, -66]]].map(route => route.map(p => mark(...p))),
+  B: [[[-36, 10], [-44, -10], [-43, -32], [-43, -47], [-40, -66]], [[-11, -21], [-18, -29], [-35, -30], [-43, -47], [-40, -66]]].map(route => route.map(p => mark(...p))),
 };
-// static geometry shared by physics, rays and the client renderer
-const colliders = [], rayBoxes = [], wallRects = [], crateBoxes = [];
-(function buildGeometry() {
-  const used = grid.map(r => r.map(() => false));
-  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-    if (grid[r][c] !== '#' || used[r][c]) continue;
-    let w = 1; while (c + w < COLS && grid[r][c + w] === '#' && !used[r][c + w]) w++;
-    let h = 1;
-    outer: while (r + h < ROWS) { for (let k = 0; k < w; k++) if (grid[r + h][c + k] !== '#' || used[r + h][c + k]) break outer; h++; }
-    for (let rr = r; rr < r + h; rr++) for (let cc = c; cc < c + w; cc++) used[rr][cc] = true;
-    let touches = false;
-    for (let rr = r - 1; rr <= r + h && !touches; rr++) for (let cc = c - 1; cc <= c + w; cc++) if (tile(cc, rr) !== '#') { touches = true; break; }
-    if (!touches) continue;
-    const hgt = 6 + ((c * 31 + r * 17) % 3) * 0.9;
-    const b = { min: [OX + c * CELL, 0, OZ + r * CELL], max: [OX + (c + w) * CELL, hgt, OZ + (r + h) * CELL], alt: (c + r) % 2 };
-    colliders.push(b); rayBoxes.push(b); wallRects.push(b);
-  }
-  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-    const t = grid[r][c]; if (t !== 'c' && t !== 'C') continue;
-    const x0 = OX + c * CELL + 0.05, z0 = OZ + r * CELL + 0.05, hh = t === 'c' ? 0.95 : 2.1;
-    const b = { min: [x0, 0, z0], max: [x0 + CELL - 0.1, hh, z0 + CELL - 0.1], small: t === 'c' };
-    colliders.push(b); rayBoxes.push(b); crateBoxes.push(b);
-  }
-  rayBoxes.push({ min: [OX, -1, OZ], max: [OX + COLS * CELL, 0, OZ + ROWS * CELL] });
-})();
-Object.assign(Sim, { CELL, COLS, ROWS, OX, OZ, grid, tile, walkable, cellOf, cellPos, siteAt, SPAWN, SITES, wallRects, crateBoxes, colliders });
+Object.assign(Sim, { CELL, COLS, ROWS, OX, OZ, grid, tile, walkable, cellOf, cellPos, siteAt, SPAWN, SITES, MAP, World });
 
 // ---------- physics ----------
 const PR = 0.36, GRAV = 20;
 const entHeight = e => 1.8 - 0.45 * e.crouch;
 const eyeH = e => 1.62 - 0.45 * e.crouch;
-function collides(x, y, z, h) {
-  for (const b of colliders) if (x + PR > b.min[0] && x - PR < b.max[0] && z + PR > b.min[2] && z - PR < b.max[2] && y + h > b.min[1] && y < b.max[1] - 0.001) return b;
-  return null;
-}
-function moveAxis(e, axis, delta, h) {
-  if (delta === 0) return;
-  const p = e.pos; const nx = axis === 0 ? p.x + delta : p.x, nz = axis === 2 ? p.z + delta : p.z;
-  const b = collides(nx, p.y, nz, h);
-  if (!b) { p.x = nx; p.z = nz; return; }
-  const step = b.max[1] - p.y;
-  if (e.onGround && step > 0 && step <= 0.5 && !collides(nx, b.max[1] + 0.001, nz, h)) { p.y = b.max[1]; p.x = nx; p.z = nz; return; }
-  if (axis === 0) { p.x = delta > 0 ? b.min[0] - PR - 0.001 : b.max[0] + PR + 0.001; e.vel.x = 0; }
-  else { p.z = delta > 0 ? b.min[2] - PR - 0.001 : b.max[2] + PR + 0.001; e.vel.z = 0; }
-  if (collides(p.x, p.y, p.z, h)) { if (axis === 0) p.x -= delta; else p.z -= delta; }
-}
-function physics(e, dt) {
-  const h = entHeight(e);
-  moveAxis(e, 0, e.vel.x * dt, h); moveAxis(e, 2, e.vel.z * dt, h);
-  e.vel.y -= GRAV * dt;
-  let ny = e.pos.y + e.vel.y * dt;
-  if (ny <= 0) { ny = 0; e.vel.y = 0; e.onGround = true; }
-  else {
-    const b = collides(e.pos.x, ny, e.pos.z, h);
-    if (b) { if (e.vel.y < 0) { ny = b.max[1]; e.onGround = true; } else ny = e.pos.y; e.vel.y = 0; }
-    else e.onGround = false;
-  }
-  e.pos.y = ny;
-}
+function collides(x, y, z, h) { return World.blocked(x, y, z, h); }
+function physics(e, dt) { World.move(e, dt, entHeight(e)); }
 function drive(e, wx, wz, maxSpd, dt) {
   const k = Math.min(1, dt * (e.onGround ? 11 : 1.6));
   e.vel.x += (wx * maxSpd - e.vel.x) * k; e.vel.z += (wz * maxSpd - e.vel.z) * k;
@@ -138,11 +89,7 @@ function rayBox(o, d, b, tMax) {
   if (axis < 0) return null;
   return { t: tmin, axis, sign };
 }
-function rayWorld(o, d, tMax) {
-  let best = null;
-  for (const b of rayBoxes) { const h = rayBox(o, d, b, best ? best.t : tMax); if (h && (!best || h.t < best.t)) best = h; }
-  return best;
-}
+function rayWorld(o, d, tMax) { return World.raycast(o, d, tMax); }
 function raySphere(o, d, c, r, tMax) {
   const ox = o[0] - c[0], oy = o[1] - c[1], oz = o[2] - c[2];
   const b = ox * d[0] + oy * d[1] + oz * d[2], cc = ox * ox + oy * oy + oz * oz - r * r;
@@ -170,51 +117,9 @@ function canSee(eye, o) {
 }
 Object.assign(Sim, { rayWorld, canSee });
 
-// ---------- pathfinding ----------
-function nearestWalk(c, r) {
-  for (let rad = 1; rad < 6; rad++) for (let dr = -rad; dr <= rad; dr++) for (let dc = -rad; dc <= rad; dc++) if (walkable(c + dc, r + dr)) return [c + dc, r + dr];
-  return [c, r];
-}
-function clearLine(a, b) {
-  const dx = b.x - a.x, dz = b.z - a.z, L = Math.hypot(dx, dz); if (L < 0.01) return true;
-  const nx = -dz / L * 0.45, nz = dx / L * 0.45, steps = Math.ceil(L / 0.4);
-  for (let i = 0; i <= steps; i++) {
-    const x = a.x + dx * i / steps, z = a.z + dz * i / steps;
-    for (const [ox, oz] of [[0, 0], [nx, nz], [-nx, -nz]]) { const [c, r] = cellOf(x + ox, z + oz); if (!walkable(c, r)) return false; }
-  }
-  return true;
-}
-function findPath(x0, z0, x1, z1) {
-  let [sc, sr] = cellOf(x0, z0), [gc, gr] = cellOf(x1, z1);
-  if (!walkable(sc, sr)) [sc, sr] = nearestWalk(sc, sr);
-  const goalOk = walkable(gc, gr); if (!goalOk) [gc, gr] = nearestWalk(gc, gr);
-  const N = COLS * ROWS, start = sr * COLS + sc, goal = gr * COLS + gc;
-  const g = new Float32Array(N).fill(1e9), came = new Int32Array(N).fill(-1), closed = new Uint8Array(N);
-  const heap = []; const hf = i => g[i] + Math.hypot((i % COLS) - gc, ((i / COLS) | 0) - gr);
-  const push = i => { heap.push([hf(i), i]); let k = heap.length - 1; while (k > 0) { const p = (k - 1) >> 1; if (heap[p][0] <= heap[k][0]) break; [heap[p], heap[k]] = [heap[k], heap[p]]; k = p; } };
-  const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; let k = 0; for (;;) { const l = 2 * k + 1, r = l + 1; let m = k; if (l < heap.length && heap[l][0] < heap[m][0]) m = l; if (r < heap.length && heap[r][0] < heap[m][0]) m = r; if (m === k) break; [heap[m], heap[k]] = [heap[k], heap[m]]; k = m; } } return top[1]; };
-  g[start] = 0; push(start);
-  while (heap.length) {
-    const cur = pop(); if (closed[cur]) continue; closed[cur] = 1; if (cur === goal) break;
-    const c = cur % COLS, r = (cur / COLS) | 0;
-    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
-      if (!dr && !dc) continue; const nc = c + dc, nr = r + dr;
-      if (!walkable(nc, nr)) continue;
-      if (dr && dc && (!walkable(c + dc, r) || !walkable(c, r + dr))) continue;
-      const ni = nr * COLS + nc, ng = g[cur] + (dr && dc ? 1.414 : 1);
-      if (ng < g[ni]) { g[ni] = ng; came[ni] = cur; push(ni); }
-    }
-  }
-  if (!closed[goal]) return null;
-  const cells = []; for (let i = goal; i !== -1 && i !== start; i = came[i]) cells.push(i);
-  cells.reverse();
-  const pts = cells.map(i => cellPos(i % COLS, (i / COLS) | 0));
-  if (goalOk && pts.length) pts[pts.length - 1] = { x: x1, z: z1 };
-  if (goalOk && !pts.length) pts.push({ x: x1, z: z1 });
-  const out = []; let anchor = { x: x0, z: z0 }, i = 0;
-  while (i < pts.length) { let j = i; while (j + 1 < pts.length && clearLine(anchor, pts[j + 1])) j++; out.push(pts[j]); anchor = pts[j]; i = j + 1; }
-  return out;
-}
+// Navigation follows the original map graph, including overlapping tunnel levels.
+function findPath(x0, z0, x1, z1, y0, y1) { return World.path(x0, z0, x1, z1, y0, y1); }
+Sim.findPath = findPath;
 
 // ---------- weapons ----------
 const W = {
@@ -429,14 +334,15 @@ function updateItems(dt) {
       it.vy -= GRAV * dt; let nx = it.x + it.vx * dt, nz = it.z + it.vz * dt;
       const [c, r] = cellOf(nx, nz); if (!walkable(c, r)) { nx = it.x; nz = it.z; it.vx = it.vz = 0; }
       it.x = nx; it.z = nz; it.y += it.vy * dt;
-      if (it.y <= .04) { it.y = .04; it.vy = 0; it.vx *= .3; it.vz *= .3; if (Math.abs(it.vx) < .05) it.vx = it.vz = 0; }
+      const floor = World.floor(it.x, it.z, it.y + .5) ?? -20;
+      if (it.y <= floor + .04) { it.y = floor + .04; it.vy = 0; it.vx *= .3; it.vz *= .3; if (Math.abs(it.vx) < .05) it.vx = it.vz = 0; }
     }
   }
   for (const e of G.ents) {
     if (!e.alive) continue;
     for (let i = G.items.length - 1; i >= 0; i--) {
       const it = G.items[i]; if (it.noPick === e && G.T < it.noPickUntil) continue;
-      if (e.weapons[it.w.def.slot] || Math.hypot(e.pos.x - it.x, e.pos.z - it.z) > 1 || it.y > .5) continue;
+      if (e.weapons[it.w.def.slot] || Math.hypot(e.pos.x - it.x, e.pos.z - it.z) > 1 || Math.abs(it.y - e.pos.y) > .8) continue;
       e.weapons[it.w.def.slot] = it.w; G.items.splice(i, 1);
       if (!e.human) switchSlot(e, bestSlot(e));
     }
@@ -459,7 +365,7 @@ function dropBomb(e, thrown) {
   const B = G.bomb;
   e.hasBomb = false; e.weapons[5] = null; if (e.slot === 5 && e.alive) switchSlot(e, bestSlot(e));
   B.state = 'dropped'; B.carrier = null; vset(B.pos, e.pos.x, e.pos.y, e.pos.z);
-  if (thrown) { const f = dirFromAngles(e.yaw, 0); const nx = e.pos.x + f[0] * 1.5, nz = e.pos.z + f[2] * 1.5; const [c, r] = cellOf(nx, nz); if (walkable(c, r)) vset(B.pos, nx, 0, nz); B.noPick = e; B.noPickUntil = G.T + 1.5; }
+  if (thrown) { const f = dirFromAngles(e.yaw, 0); const nx = e.pos.x + f[0] * 1.5, nz = e.pos.z + f[2] * 1.5; const [c, r] = cellOf(nx, nz); if (walkable(c, r)) vset(B.pos, nx, World.floor(nx, nz, e.pos.y + .5) ?? e.pos.y, nz); B.noPick = e; B.noPickUntil = G.T + 1.5; }
   ev('bomb', { k: 'dropped', id: e.id });
   for (const b of G.ents) if (!b.human && b.alive && b.team === 'T') assignTask(b);
 }
@@ -470,7 +376,7 @@ function pickupBomb(e) {
 }
 function plantBomb(e) {
   const B = G.bomb;
-  B.state = 'planted'; B.carrier = null; vset(B.pos, e.pos.x, e.pos.y, e.pos.z); B.timer = 40; B.site = siteAt(e.pos.x, e.pos.z) || 'A';
+  B.state = 'planted'; B.carrier = null; vset(B.pos, e.pos.x, e.pos.y, e.pos.z); B.timer = 40; B.site = siteAt(e.pos.x, e.pos.z, e.pos.y) || 'A';
   B.plantedBy = e; B.defuser = null; B.defuseT = 0; B.yaw = e.yaw;
   e.hasBomb = false; e.weapons[5] = null; e.planting = 0; e.money = Math.min(16000, e.money + 300);
   if (e.slot === 5) switchSlot(e, bestSlot(e));
@@ -669,12 +575,13 @@ function navigate(b, dt) {
   if (G.T < b.startAt && !b.hunt) goal = null;
   if (goal) {
     const key = goal.x.toFixed(1) + ',' + goal.z.toFixed(1);
-    if (!b.path || b.pathKey !== key || G.T > b.repathAt) { b.path = findPath(b.pos.x, b.pos.z, goal.x, goal.z) || []; b.pidx = 0; b.pathKey = key; b.repathAt = G.T + 4; }
-    while (b.pidx < b.path.length && dist2D(b.pos, b.path[b.pidx]) < .5) b.pidx++;
+    if (!b.path || b.pathKey !== key || G.T > b.repathAt) { b.path = findPath(b.pos.x, b.pos.z, goal.x, goal.z, b.pos.y, goal.y) || []; b.pidx = 0; b.pathKey = key; b.repathAt = G.T + 4; }
+    while (b.pidx < b.path.length && dist2D(b.pos, b.path[b.pidx]) < .55 && Math.abs(b.pos.y - b.path[b.pidx].y) < 1) b.pidx++;
     if (b.pidx >= b.path.length) reached(b);
     else {
       const p = b.path[b.pidx], dx = p.x - b.pos.x, dz = p.z - b.pos.z, L = Math.hypot(dx, dz) || 1;
       mv.x = dx / L; mv.z = dz / L; mv.speed = 1;
+      if (b.onGround && p.y - b.pos.y > .5 && L < 3) { b.vel.y = 7.2; b.onGround = false; }
       if (G.T < b.unstickUntil) { mv.x = -dz / L * b.unstickDir; mv.z = dx / L * b.unstickDir; }
       b.stuckT += dt;
       if (b.stuckT > .8) { if (dist2D(b.pos, b.lastPos) < .3) { b.path = null; b.unstickUntil = G.T + .4; b.unstickDir = Math.random() < .5 ? -1 : 1; } b.stuckT = 0; vcopy(b.lastPos, b.pos); }
@@ -723,7 +630,7 @@ function updateBot(b, dt) {
     if (defusing) { mv = { x: 0, z: 0, speed: 0, crouch: true }; b.yaw += angDiff(b.yaw, yawTo(b.pos, B.pos.x, B.pos.z)) * Math.min(1, dt * 5); b.pitch += (-.6 - b.pitch) * Math.min(1, dt * 5); }
     else {
       mv = navigate(b, dt);
-      if (b.hasBomb && B.state === 'carried' && b.wpi >= b.wps.length && siteAt(b.pos.x, b.pos.z) && b.onGround) {
+      if (b.hasBomb && B.state === 'carried' && b.wpi >= b.wps.length && siteAt(b.pos.x, b.pos.z, b.pos.y) && b.onGround) {
         mv = { x: 0, z: 0, speed: 0, crouch: true }; b.planting += dt;
         if (b.planting >= 3.2 && G.phase === 'live') plantBomb(b);
       } else b.planting = 0;
@@ -753,7 +660,7 @@ function separate() {
 function lockState(e, k, btn, frozen, planted, bombPos, defuserOther) {
   if (frozen) return 1;
   const w = e.weapons[e.slot];
-  if ((btn & 1) && w && w.def.c4 && e.onGround && siteAt(e.pos.x, e.pos.z)) return 2;
+  if ((btn & 1) && w && w.def.c4 && e.onGround && siteAt(e.pos.x, e.pos.z, e.pos.y)) return 2;
   if ((k & K.USE) && e.team === 'CT' && planted && !defuserOther && dist2D(e.pos, bombPos) < 1.6 && e.onGround) return 2;
   return 0;
 }
@@ -853,12 +760,11 @@ function spawnEnt(e, fresh) {
   if (fresh) { e.weapons = { 1: null, 2: makeWeapon(e.team === 'T' ? 'glock' : 'usp'), 3: makeWeapon('knife'), 5: null }; e.armor = 0; e.helmet = false; e.kit = false; }
   else { e.weapons[5] = null; for (const s of [1, 2]) { const w = e.weapons[s]; if (w) { w.mag = w.def.mag; w.reserve = w.def.res; } } e.weapons[3] = e.weapons[3] || makeWeapon('knife'); }
   const mates = G.ents.filter(o => o.team === e.team && o.alive && o !== e).length;
-  const sp = SPAWN[e.team], [c, r] = sp[(mates + randInt(0, 4)) % 5], cp = cellPos(c, r);
-  let x = cp.x, z = cp.z;
-  for (let k = 0; k < 12; k++) { const tx = cp.x + rand(-.7, .7), tz = cp.z + rand(-.7, .7); if (!G.ents.some(o => o.alive && o !== e && Math.hypot(o.pos.x - tx, o.pos.z - tz) < .8)) { x = tx; z = tz; break; } }
-  vset(e.pos, x, 0, z); vset(e.vel, 0, 0, 0);
+  const spawns = MAP.spawns[e.team];
+  const cp = spawns.find(p => !G.ents.some(o => o !== e && o.alive && dist2D(o.pos, p) < .9)) || spawns[mates % spawns.length];
+  vset(e.pos, cp.x, (World.floor(cp.x, cp.z, cp.y + .5, 2) ?? cp.y) + .005, cp.z); vset(e.vel, 0, 0, 0);
   e.alive = true; e.hp = 100; e.crouch = 0; e.onGround = true; e.hasBomb = false; e.planting = 0; e.scoped = 0;
-  e.yaw = e.team === 'CT' ? Math.PI : 0; e.pitch = 0; e.reloadEnd = 0; e.drawEnd = 0; e.recoilIdx = 0; e.nextFire = 0;
+  e.yaw = cp.yaw; e.pitch = 0; e.reloadEnd = 0; e.drawEnd = 0; e.recoilIdx = 0; e.nextFire = 0;
   e.slot = 0; switchSlot(e, e.weapons[1] ? 1 : 2); e.lastSlot = 3; e.teleported = (e.teleported || 0) + 1;
 }
 function startRound() {
