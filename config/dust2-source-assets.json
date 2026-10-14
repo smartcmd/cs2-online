@@ -3085,6 +3085,12 @@
       "bytes": 153557,
       "sha256": "3be20317d1383da6f390a5bb245cabb65857ef08b1e2c5b82b5938a8cb3167bb",
       "group": "metadata"
+    },
+    {
+      "path": "assets/map/collision.json",
+      "bytes": 17102499,
+      "sha256": "5ad7c0072d24e4bfd971e9a03de9c33c0825b6a731de3f110998e0db6bb68553",
+      "group": "metadata"
     }
   ]
 }

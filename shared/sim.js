@@ -23,9 +23,9 @@ const MAP = World.data;
 const CELL = 1, OX = -57, OZ = -81, COLS = 104, ROWS = 112;
 const cellOf = (x, z) => [Math.floor((x - OX) / CELL), Math.floor((z - OZ) / CELL)];
 const mark = (x, z) => [(x - OX) / CELL - .5, (z - OZ) / CELL - .5];
-const cellPos = (c, r) => {
+const cellPos = (c, r, y) => {
   const x = OX + (c + .5) * CELL, z = OZ + (r + .5) * CELL;
-  const n = World.nearest(x, z); return { x: n.x, y: n.y, z: n.z };
+  const n = World.nearest(x, z, y); return { x: n.x, y: n.y, z: n.z };
 };
 const grid = Array.from({ length: ROWS }, () => Array(COLS).fill('#'));
 for (const n of MAP.nav) { const [c, r] = cellOf(n.x, n.z); if (grid[r] && c >= 0 && c < COLS) grid[r][c] = '.'; }
@@ -123,7 +123,7 @@ function canSee(eye, o) {
 Object.assign(Sim, { rayWorld, canSee });
 
 // Navigation follows the original map graph, including overlapping tunnel levels.
-function findPath(x0, z0, x1, z1, y0, y1) { return World.path(x0, z0, x1, z1, y0, y1); }
+function findPath(x0, z0, x1, z1, y0, y1, options) { return World.path(x0, z0, x1, z1, y0, y1, options); }
 Sim.findPath = findPath;
 
 // ---------- weapons ----------
@@ -178,7 +178,7 @@ Sim.createGame = function (opts) {
     phase: 'freeze', round: 0, freezeT: 0, roundT: 0, elapsed: 0, postT: 0, overT: 0,
     score: { CT: 0, T: 0 }, loss: { CT: 0, T: 0 }, target: opts.target || 8, diff: typeof opts.diff === 'string' && Object.hasOwn(DIFFS, opts.diff) ? opts.diff : 'normal',
     tSite: 'A', ctCall: null, winner: null,
-    bomb: { state: 'none', carrier: null, pos: V(), timer: 0, site: null, defuser: null, defuseT: 0, need: 10, plantedBy: null, noPick: null, noPickUntil: 0 },
+    bomb: { state: 'none', carrier: null, pos: V(), timer: 0, site: null, defuser: null, defuseT: 0, need: 10, plantedBy: null, fetchBot: null, defuseBot: null, noPick: null, noPickUntil: 0 },
   };
 };
 const ev = (e, o) => { o.e = e; G.events.push(o); };
@@ -196,7 +196,7 @@ function makeEnt(team, name, human) {
     target: null, targetVisible: false, lastSeen: -9, lastKnown: V(), reactAt: 0, errYaw: 0, errPitch: 0, aimHead: false,
     burstLeft: 5, burstPause: 0, semiAt: 0, strafeDir: 1, strafeSwitch: 0, think: 0, alertUntil: 0, lookAt: V(), lookUntil: 0,
     hunt: false, huntPos: V(), huntUntil: 0, task: 'idle', wps: [], wpi: 0, face: 0, path: null, pidx: 0, pathKey: '', repathAt: 0,
-    startAt: 0, stuckT: 0, lastPos: V(), unstickUntil: 0, unstickDir: 1, holdSite: null, crouchy: Math.random() < .5, route: null, routeIdx: 0,
+    startAt: 0, holdSite: null, crouchy: Math.random() < .5, route: null, routeIdx: 0,
   };
 }
 const curW = e => e.weapons[e.slot];
@@ -353,7 +353,7 @@ function updateItems(dt) {
     }
   }
   const B = G.bomb;
-  if (B.state === 'dropped') for (const e of G.ents) if (e.alive && e.team === 'T' && dist2D(e.pos, B.pos) < 1.1 && !(B.noPick === e && G.T < B.noPickUntil)) { pickupBomb(e); break; }
+  if (B.state === 'dropped') for (const e of G.ents) if (e.alive && e.team === 'T' && dist2D(e.pos, B.pos) < 1.1 && Math.abs(e.pos.y-B.pos.y)<.8 && !(B.noPick === e && G.T < B.noPickUntil)) { pickupBomb(e); break; }
 }
 function swapNearest(e) {
   let best = null, bd = 1.8;
@@ -369,7 +369,7 @@ function swapNearest(e) {
 function dropBomb(e, thrown) {
   const B = G.bomb;
   e.hasBomb = false; e.weapons[5] = null; if (e.slot === 5 && e.alive) switchSlot(e, bestSlot(e));
-  B.state = 'dropped'; B.carrier = null; vset(B.pos, e.pos.x, e.pos.y, e.pos.z);
+  B.state = 'dropped'; B.carrier = null; B.fetchBot = null; vset(B.pos, e.pos.x, e.pos.y, e.pos.z);
   if (thrown) { const f = dirFromAngles(e.yaw, 0); const nx = e.pos.x + f[0] * 1.5, nz = e.pos.z + f[2] * 1.5; const [c, r] = cellOf(nx, nz); if (walkable(c, r)) vset(B.pos, nx, World.floor(nx, nz, e.pos.y + .5) ?? e.pos.y, nz); B.noPick = e; B.noPickUntil = G.T + 1.5; }
   ev('bomb', { k: 'dropped', id: e.id });
   for (const b of G.ents) if (!b.human && b.alive && b.team === 'T') assignTask(b);
@@ -381,7 +381,7 @@ function pickupBomb(e) {
 }
 function plantBomb(e) {
   const B = G.bomb;
-  B.state = 'planted'; B.carrier = null; vset(B.pos, e.pos.x, e.pos.y, e.pos.z); B.timer = 40; B.site = siteAt(e.pos.x, e.pos.z, e.pos.y) || 'A';
+  B.state = 'planted'; B.carrier = null; vset(B.pos, e.pos.x, e.pos.y, e.pos.z); B.timer = 40; B.defuseBot = null; B.site = siteAt(e.pos.x, e.pos.z, e.pos.y) || 'A';
   B.plantedBy = e; B.defuser = null; B.defuseT = 0; B.yaw = e.yaw;
   e.hasBomb = false; e.weapons[5] = null; e.planting = 0; e.money = Math.min(16000, e.money + 300);
   if (e.slot === 5) switchSlot(e, bestSlot(e));
@@ -393,7 +393,7 @@ function updateBomb(dt) {
   B.timer -= dt;
   if (B.defuser) {
     const d = B.defuser;
-    const ok = d.alive && dist2D(d.pos, B.pos) < 1.8 && (!d.human || d.useHeld);
+    const ok = d.alive && dist2D(d.pos, B.pos) < 1.8 && Math.abs(d.pos.y-B.pos.y)<1.5 && (!d.human || d.useHeld);
     if (!ok) { B.defuser = null; B.defuseT = 0; }
     else {
       // Only time before detonation can count toward a defuse in this tick.
@@ -451,13 +451,43 @@ Object.assign(Sim, { canBuyNow, inBuyZone });
 
 // ---------- bot AI ----------
 const yawTo = (from, x, z) => Math.atan2(-(x - from.x), -(z - from.z));
-function nearCell(c, r, rad) {
-  for (let k = 0; k < 20; k++) { const cc = c + randInt(-rad, rad), rr = r + randInt(-rad, rad); if (walkable(cc, rr)) return cellPos(cc, rr); }
-  return cellPos(c, r);
+function nearCell(c, r, rad, y, team) {
+  const anchor = cellPos(c, r, y);
+  for (let k = 0; k < 24; k++) {
+    const x = anchor.x + rand(-rad, rad), z = anchor.z + rand(-rad, rad);
+    const floor = World.floor(x, z, anchor.y + .7, 1.8);
+    if (floor === null) continue;
+    const support = World.support(x, z, floor, .5, .1), p = { x, y:support, z };
+    if (support === null || Math.abs(support-anchor.y)>1 || World.blocked(x,support,z,1.8)) continue;
+    if (!World.canWalk(anchor,p)) continue;
+    if (G.ents.some(other=>other.alive&&other.team===team&&((dist2D(other.pos,p)<1.1&&Math.abs(other.pos.y-p.y)<1)||(other.wps[other.wps.length-1]&&dist2D(other.wps[other.wps.length-1],p)<1.1&&Math.abs(other.wps[other.wps.length-1].y-p.y)<1)))) continue;
+    return p;
+  }
+  return anchor;
 }
-function setWps(b, cells, faceCell) {
-  b.wps = cells.map(([c, r]) => cellPos(c, r)); b.wpi = 0; b.path = null;
+function setGoals(b, goals, faceCell, offset = 0) {
+  b.wps = goals; b.wpi = 0; b.routeOffset = offset; b.path = null; b.pathGoal = null; b.repathAt = 0;
   if (faceCell) { const p = cellPos(faceCell[0], faceCell[1]); const last = b.wps[b.wps.length - 1] || b.pos; b.face = Math.atan2(-(p.x - last.x), -(p.z - last.z)); }
+}
+function setWps(b, cells, faceCell, offset = 0) {
+  setGoals(b,cells.map(([c,r,y])=>cellPos(c,r,y)),faceCell,offset);
+}
+
+function objectiveRunner(team, position, field) {
+  const B = G.bomb, current = B[field];
+  if (current && G.ents.includes(current) && current.alive && current.team === team && !current.human) return current;
+  let best = null, score = Infinity;
+  for (const candidate of G.ents) {
+    if (!candidate.alive || candidate.human || candidate.team !== team) continue;
+    const path = findPath(candidate.pos.x, candidate.pos.z, position.x, position.z, candidate.pos.y, position.y, {reachableAnchors:true});
+    if (!path) continue;
+    let distance = 0, previous = candidate.pos;
+    for (const p of path) { distance += Math.hypot(p.x-previous.x,p.y-previous.y,p.z-previous.z); previous = p; }
+    distance += dist2D(previous, position);
+    const cost = distance / 5 + (field === 'defuseBot' ? (candidate.kit ? 5 : 10) : 0);
+    if (cost < score) { best = candidate; score = cost; }
+  }
+  B[field] = best; return best;
 }
 function assignTask(b) {
   if (!b.alive || b.human) return;
@@ -465,75 +495,84 @@ function assignTask(b) {
   if (b.team === 'T') {
     if (B.state === 'planted') {
       const s = SITES[B.site]; const [c, r] = cellOf(B.pos.x, B.pos.z);
-      const p = nearCell(c, r, 3); b.task = 'guard'; b.wps = [p]; b.wpi = 0; b.path = null;
+      const p = nearCell(c, r, 3, B.pos.y, b.team); b.task = 'guard'; b.wps = [p]; b.wpi = 0; b.path = null;
       const w = cellPos(s.guardWatch[0], s.guardWatch[1]); b.face = Math.atan2(-(w.x - p.x), -(w.z - p.z));
     } else if (B.state === 'dropped') {
-      const ts = G.ents.filter(o => o.alive && o.team === 'T').sort((x, y) => dist2D(x.pos, B.pos) - dist2D(y.pos, B.pos));
-      const bots = ts.filter(o => !o.human);
-      const humanCloser = ts.length && ts[0].human && dist2D(ts[0].pos, B.pos) < 12;
-      if (bots[0] === b && !humanCloser) { b.task = 'fetch'; b.path = null; }
+      if (objectiveRunner('T', B.pos, 'fetchBot') === b) { b.task = 'fetch'; b.path = null; b.repathAt = 0; }
       else if (b.task === 'fetch' || b.task === 'plant') routeT(b);
     } else if (b.hasBomb) {
       b.task = 'plant'; const s = SITES[G.tSite];
       if (!b.route) b.route = pick(ROUTES[G.tSite]);
-      const rest = b.route.slice(Math.min(b.routeIdx || 0, b.route.length - 1));
-      setWps(b, [...rest.slice(0, -1), s.plant]);
+      const offset = Math.min(b.routeIdx || 0, b.route.length - 1), rest = b.route.slice(offset);
+      setWps(b, [...rest.slice(0, -1), [...s.plant, MAP.sites[G.tSite].y]], null, offset);
     } else if (b.task !== 'route') routeT(b);
   } else {
-    if (B.state === 'planted') { b.task = 'defuse'; b.path = null; }
+    if (B.state === 'planted') {
+      const runner = B.defuser && B.defuser.alive ? B.defuser : objectiveRunner('CT', B.pos, 'defuseBot');
+      if (runner === b) { b.task = 'defuse'; b.path = null; b.repathAt = 0; }
+      else {
+        b.task = 'cover'; const site = SITES[B.site || 'A'], hold = site.holds[b.id % site.holds.length];
+        const p = nearCell(hold.c[0], hold.c[1], 1.5, B.pos.y, b.team);
+        setGoals(b, [p], hold.w);
+      }
+    }
     else {
       b.task = 'hold';
       const h = (b.holdSite || 'M') === 'M' ? MID_HOLD : pick(SITES[b.holdSite].holds);
-      setWps(b, [h.c], h.w);
+      setGoals(b, [nearCell(h.c[0],h.c[1],1.5,b.holdSite==='A'||b.holdSite==='B'?MAP.sites[b.holdSite].y:undefined,b.team)], h.w);
     }
   }
 }
 function routeT(b) {
   b.task = 'route'; b.route = b.route || pick(ROUTES[G.tSite]);
   const s = SITES[G.tSite]; const end = b.route[b.route.length - 1];
-  const p = nearCell(end[0], end[1], 2); const [pc, pr] = cellOf(p.x, p.z);
-  setWps(b, [...b.route.slice(0, -1), [pc, pr]], s.guardWatch);
+  const p = nearCell(end[0], end[1], 3, MAP.sites[G.tSite].y, b.team);
+  const offset = Math.min(b.routeIdx || 0, b.route.length - 1);
+  setGoals(b, [...b.route.slice(offset, -1).map(([c,r])=>cellPos(c,r)), p], s.guardWatch, offset);
 }
 function planBots() {
-  G.tSite = Math.random() < .5 ? 'A' : 'B'; G.ctCall = null;
+  G.tSite = Math.random() < .5 ? 'A' : 'B'; G.ctCall = null; G.ctCallAt = -Infinity;
   const cts = shuffle(G.ents.filter(e => e.team === 'CT' && !e.human));
   const plan = shuffle(['A', 'B', 'A', 'B', 'M']);
   cts.forEach((b, i) => b.holdSite = plan[i % 5]);
+  for (const b of G.ents) if (!b.human) { b.wps = []; b.wpi = 0; }
   for (const b of G.ents) {
     if (b.human) continue;
-    b.route = null; b.routeIdx = 0; b.task = 'idle'; b.hunt = false; b.target = null; b.targetVisible = false;
+    b.route = null; b.routeIdx = 0; b.blockedEdges = new Map(); b.navStall = 0; b.listenAt = 0; b.huntCommitUntil = 0; b.wasFighting = false; b.noShortcutUntil = 0; b.jumpRetryAt = 0; b.repathAt = 0; b.task = 'idle'; b.hunt = false; b.target = null; b.targetVisible = false;
     b.startAt = G.T + (b.team === 'T' ? (Math.random() < .25 ? rand(3, 10) : rand(0, 1.5)) : rand(0, 1));
     assignTask(b);
   }
 }
 function rotateCT(site) {
-  if (G.ctCall === site) return; G.ctCall = site;
+  if (G.bomb.state === 'planted' || G.ctCall === site || G.T < G.ctCallAt + 8) return; G.ctCall = site; G.ctCallAt = G.T;
   const others = G.ents.filter(e => e.alive && !e.human && e.team === 'CT' && e.holdSite !== site && !e.targetVisible);
   others.slice(0, Math.max(1, others.length - 1)).forEach(b => { b.holdSite = site; if (G.bomb.state !== 'planted') assignTask(b); });
 }
 function hear(b, pos) {
   if (b.targetVisible || !b.alive || b.human) return;
-  vset(b.lookAt, pos.x + rand(-2, 2), pos.y, pos.z + rand(-2, 2)); b.lookUntil = G.T + 1.6;
+  if (G.T >= (b.listenAt || 0)) { vset(b.lookAt, pos.x + rand(-2, 2), pos.y, pos.z + rand(-2, 2)); b.listenAt = G.T + .4; } b.lookUntil = G.T + 1.6;
   if (b.hasBomb || b.task === 'defuse' || b.task === 'fetch' || G.bomb.defuser === b) return;
-  if (dist2D(b.pos, pos) < 22 && Math.random() < (b.task === 'hold' ? .3 : .55)) { b.hunt = true; vcopy(b.huntPos, pos); b.huntUntil = G.T + 6; b.path = null; }
+  if ((!b.hunt || G.T >= (b.huntCommitUntil || 0)) && dist2D(b.pos, pos) < 22 && Math.random() < (b.task === 'hold' ? .3 : .55)) { if (!b.hunt || dist2D(b.huntPos, pos) > 2 || Math.abs(b.huntPos.y - pos.y) > 1) b.path = null; b.hunt = true; vcopy(b.huntPos, pos); b.huntUntil = G.T + 6; b.huntCommitUntil = G.T + 2; }
 }
 const burstSize = d => d > 25 ? randInt(2, 4) : d > 12 ? randInt(4, 8) : randInt(8, 15);
 function perceive(b, D) {
-  const eye = eyeArr(b); let best = null, bd = 1e9;
+  const eye = eyeArr(b); let best = null, bd = 1e9, currentDistance = Infinity;
   for (const o of G.ents) {
     if (!o.alive || o.team === b.team) continue;
     const dx = o.pos.x - b.pos.x, dz = o.pos.z - b.pos.z, d = Math.hypot(dx, dz); if (d > 95) continue;
     const inFov = Math.abs(angDiff(b.yaw, Math.atan2(-dx, -dz))) < D.fov * DEG || d < 3 || G.T < b.alertUntil;
     if (!inFov || !canSee(eye, o)) continue;
+    if (o === b.target) currentDistance = d;
     if (d < bd) { bd = d; best = o; }
   }
+  if (b.target && currentDistance <= bd * 1.25 + 2) { best = b.target; bd = currentDistance; }
   if (best) {
     if (b.target !== best || G.T - b.lastSeen > 1) {
       b.reactAt = G.T + D.react * rand(.8, 1.4); b.errYaw = rand(-1, 1) * D.err; b.errPitch = rand(-.6, .6) * D.err;
       b.aimHead = Math.random() < D.hs; b.burstLeft = burstSize(bd); b.burstPause = 0;
     }
     b.target = best; b.targetVisible = true; b.lastSeen = G.T; vcopy(b.lastKnown, best.pos); best.spot[b.team] = G.T + 1.2;
-    if (b.team === 'CT') for (const k of ['A', 'B']) { const c = cellPos(SITES[k].center[0], SITES[k].center[1]); if (Math.hypot(best.pos.x - c.x, best.pos.z - c.z) < 22) rotateCT(k); }
+    if (b.team === 'CT') for (const k of ['A', 'B']) { const c = cellPos(SITES[k].center[0], SITES[k].center[1]); if (Math.hypot(best.pos.x - c.x, best.pos.z - c.z) < 16 && Math.abs(best.pos.y - MAP.sites[k].y) < 2) rotateCT(k); }
     for (const m of G.ents) if (m !== b && m.alive && !m.human && m.team === b.team && !m.targetVisible && dist2D(m.pos, b.pos) < 25) { vcopy(m.lookAt, best.pos); m.lookUntil = G.T + 1.2; }
   } else {
     b.targetVisible = false;
@@ -554,7 +593,11 @@ function combat(b, D, dt) {
   b.yaw += angDiff(b.yaw, wy) * k; b.pitch += (wp - b.pitch) * k;
   const off = Math.abs(angDiff(b.yaw, wy)) + Math.abs(wp - b.pitch);
   const mv = { x: 0, z: 0, speed: 0, crouch: false };
-  if (d.melee) { mv.x = dx / hd; mv.z = dz / hd; mv.speed = 1; if (dist < 1.9 && off < .3) fire(b); return mv; }
+  if (d.melee) {
+    if (dist < 1.9 && off < .3) fire(b);
+    if (World.canWalk(b.pos,t.pos,entHeight(b))) { mv.x=dx/hd;mv.z=dz/hd;mv.speed=dist<1.25?0:1;return mv; }
+    return navigate(b,dt,t.pos);
+  }
   const tol = d.scope ? .01 : Math.max(.015, Math.atan(.2 / dist));
   if (G.T >= b.reactAt && off < tol && !b.reloadEnd && G.T >= b.burstPause) {
     if (d.auto) { if (fire(b) && --b.burstLeft <= 0) { b.burstPause = G.T + rand(.2, .45); b.burstLeft = burstSize(dist); } }
@@ -563,52 +606,116 @@ function combat(b, D, dt) {
   if (d.scope) b.scoped = 1;
   const firing = G.T - b.lastShot < .2;
   if (!firing && D.strafe && !d.scope && dist > 4) {
-    if (G.T > b.strafeSwitch) { b.strafeDir = Math.random() < .5 ? -1 : 1; b.strafeSwitch = G.T + rand(.3, .7); }
-    mv.x = Math.cos(b.yaw) * b.strafeDir; mv.z = -Math.sin(b.yaw) * b.strafeDir; mv.speed = .9;
+    if (G.T > b.strafeSwitch) {
+      b.strafeDir = Math.random() < .5 ? -1 : 1; b.strafeSwitch = G.T + rand(.3, .7);
+      const safe = sign => World.canWalk(b.pos, { x:b.pos.x+Math.cos(b.yaw)*sign*.7, y:b.pos.y, z:b.pos.z-Math.sin(b.yaw)*sign*.7 }, entHeight(b));
+      if (!safe(b.strafeDir)) b.strafeDir = safe(-b.strafeDir) ? -b.strafeDir : 0;
+    }
+    mv.x = Math.cos(b.yaw) * b.strafeDir; mv.z = -Math.sin(b.yaw) * b.strafeDir; mv.speed = b.strafeDir ? .9 : 0;
   }
   if (firing && dist > 18 && b.crouchy) mv.crouch = true;
+  if (mv.speed && b.onGround && !World.canWalk(b.pos,{x:b.pos.x+mv.x*.8,y:b.pos.y,z:b.pos.z+mv.z*.8},entHeight(b))) { mv.speed=0;b.strafeSwitch=G.T; }
   return mv;
 }
-function navigate(b, dt) {
+function navigate(b, dt, overrideGoal) {
   const mv = { x: 0, z: 0, speed: 0, crouch: false }, B = G.bomb;
   if (b.hunt && G.T > b.huntUntil) { b.hunt = false; b.path = null; }
-  let goal = null;
-  if (b.hunt) goal = b.huntPos;
-  else if (b.task === 'fetch' && B.state === 'dropped') goal = B.pos;
-  else if (b.task === 'defuse' && B.state === 'planted') goal = B.pos;
-  else if (b.wpi < b.wps.length) goal = b.wps[b.wpi];
-  if (G.T < b.startAt && !b.hunt) goal = null;
+  let goal = overrideGoal || (b.hunt ? b.huntPos : b.task === 'fetch' && B.state === 'dropped' ? B.pos
+    : b.task === 'defuse' && B.state === 'planted' ? B.pos : b.wps[b.wpi]);
+  if (!overrideGoal && G.T < b.startAt && !b.hunt) goal = null;
+  let facing = null;
   if (goal) {
-    const key = goal.x.toFixed(1) + ',' + goal.z.toFixed(1);
-    if (!b.path || b.pathKey !== key || G.T > b.repathAt) { b.path = findPath(b.pos.x, b.pos.z, goal.x, goal.z, b.pos.y, goal.y) || []; b.pidx = 0; b.pathKey = key; b.repathAt = G.T + 4; }
-    while (b.pidx < b.path.length && dist2D(b.pos, b.path[b.pidx]) < .55 && Math.abs(b.pos.y - b.path[b.pidx].y) < 1) b.pidx++;
-    if (b.pidx >= b.path.length) reached(b);
+    const radius = b.task === 'defuse' ? 1.15 : b.task === 'fetch' ? .8 : .6;
+    const occupied = !overrideGoal && ['route','hold','guard','cover'].includes(b.task) && b.wpi===b.wps.length-1 && G.ents.some(other=>other!==b&&other.alive&&other.team===b.team&&dist2D(other.pos,goal)<.8&&Math.abs(other.pos.y-goal.y)<.8);
+    const arrived = dist2D(b.pos, goal) < (occupied?1.5:radius) && Math.abs(b.pos.y - goal.y) < .65;
+    if (arrived) { if (!overrideGoal) reached(b); }
     else {
-      const p = b.path[b.pidx], dx = p.x - b.pos.x, dz = p.z - b.pos.z, L = Math.hypot(dx, dz) || 1;
-      mv.x = dx / L; mv.z = dz / L; mv.speed = 1;
-      if (b.onGround && p.y - b.pos.y > .5 && L < 3) { b.vel.y = 7.2; b.onGround = false; }
-      if (G.T < b.unstickUntil) { mv.x = -dz / L * b.unstickDir; mv.z = dx / L * b.unstickDir; }
-      b.stuckT += dt;
-      if (b.stuckT > .8) { if (dist2D(b.pos, b.lastPos) < .3) { b.path = null; b.unstickUntil = G.T + .4; b.unstickDir = Math.random() < .5 ? -1 : 1; } b.stuckT = 0; vcopy(b.lastPos, b.pos); }
+      const key = overrideGoal ? 'chase' : b.hunt ? 'hunt' : b.task + ':' + b.wpi;
+      const movedGoal = !b.pathGoal || dist2D(b.pathGoal, goal) > 1.5 || Math.abs(b.pathGoal.y-goal.y) > .65;
+      if (b.pathKey !== key || movedGoal) { b.path = null; b.repathAt = 0; b.blockedEdges = new Map(); }
+      if (b.path && !b.path.length) { b.path = null; b.repathAt = 0; }
+      if (!b.path && G.T >= b.repathAt) {
+        if (!b.blockedEdges) b.blockedEdges = new Map();
+        for (const [edge, until] of b.blockedEdges) if (until <= G.T) b.blockedEdges.delete(edge);
+        b.path = findPath(b.pos.x, b.pos.z, goal.x, goal.z, b.pos.y, goal.y, { avoid: b.blockedEdges, reachableAnchors:true });
+        if (b.path && b.path.length && dist2D(b.path[b.path.length-1],goal)>.08) b.path.push({...goal});
+        b.pidx = 0; b.pathKey = key; b.pathGoal = { ...goal }; b.repathAt = G.T + 1;
+        b.navBest = Infinity; b.navIndex = -1; b.navStall = 0; b.smoothAt = 0; b.shortcutTarget = -1;
+      }
+      if (b.path && b.path.length) {
+        while (b.pidx < b.path.length && dist2D(b.pos, b.path[b.pidx]) < .55 && Math.abs(b.pos.y - b.path[b.pidx].y) < .65) {
+          const next = b.path[b.pidx+1];
+          if (next && next.id === undefined && dist2D(b.pos,b.path[b.pidx])>.15 && !World.canWalk(b.pos,next,entHeight(b))) break;
+          b.pidx++; b.shortcutTarget = -1;
+        }
+        if (b.pidx >= b.path.length) {
+          // The final nav centre may be several metres from a dropped bomb or last-known position.
+          if (World.canWalk(b.pos, goal, entHeight(b))) b.path.push({ ...goal });
+          else { b.path = null; b.repathAt = G.T + 1; }
+        }
+        if (b.path) {
+          if (G.T >= b.smoothAt && G.T >= (b.noShortcutUntil || 0) && b.onGround) {
+            const end = Math.min(b.path.length - 1, b.pidx + 8);
+            for (let i = end; i > b.pidx; i--) {
+              if (dist2D(b.pos, b.path[i]) <= 5 && World.canWalk(b.pos, b.path[i], entHeight(b))) { b.pidx = i; b.shortcutTarget = i; break; }
+            }
+            b.smoothAt = G.T + .2;
+          }
+          const next = b.path[b.pidx], dx = next.x - b.pos.x, dz = next.z - b.pos.z, distance = Math.hypot(dx, dz) || 1;
+          mv.x = dx / distance; mv.z = dz / distance;
+          mv.speed = Math.min(1, distance / .8); facing = Math.atan2(-mv.x, -mv.z);
+          if (b.onGround && World.support(b.pos.x+mv.x*.65,b.pos.z+mv.z*.65,b.pos.y,.45,4) === null) { mv.speed=0; b.navStall+=dt*2; }
+          if (b.onGround && next.y - b.pos.y > .5 && next.y - b.pos.y <= 1.3 && distance < 1.6 && G.T >= (b.jumpRetryAt || 0) && !World.canWalk(b.pos, next, entHeight(b))) {
+            b.vel.y = 7.2; b.onGround = false; b.jumpRetryAt = G.T + 1.2;
+          }
+          const progressDistance = Math.hypot(distance,next.y-b.pos.y);
+          if (b.navIndex !== b.pidx || progressDistance < b.navBest - .12) { b.navIndex = b.pidx; b.navBest = progressDistance; b.navStall = 0; }
+          else b.navStall += dt;
+          if (b.navStall > .5 && b.onGround && next.y-b.pos.y > .45 && next.y-b.pos.y <= 1.3 && distance < 1.6 && G.T >= (b.jumpRetryAt || 0)) { b.vel.y=7.2;b.onGround=false;b.jumpRetryAt=G.T+1.2; }
+          if (b.navStall > 1.2 && b.onGround) {
+            const previous = b.path[Math.max(0, b.pidx - 1)];
+            if (b.shortcutTarget !== b.pidx && previous.id !== undefined && next.id !== undefined && previous.id !== next.id) b.blockedEdges.set(previous.id + ':' + next.id, G.T + 30);
+            b.noShortcutUntil = G.T + 2;
+            b.path = null; b.repathAt = G.T + .3; b.navStall = 0;
+            mv.speed = 0;
+          }
+        }
+      }
     }
-  }
+  } else { b.navStall = 0; b.navBest = Infinity; }
   let fy;
   if (G.T < b.lookUntil) fy = yawTo(b.pos, b.lookAt.x, b.lookAt.z);
-  else if (mv.speed > 0) fy = Math.atan2(-mv.x, -mv.z);
+  else if (facing !== null) fy = facing;
   else fy = b.face + Math.sin(G.T * .6 + b.seed) * .45;
   b.yaw += angDiff(b.yaw, fy) * Math.min(1, dt * 6); b.pitch *= Math.max(0, 1 - dt * 4);
   return mv;
 }
+
 function reached(b) {
   const B = G.bomb;
   if (b.hunt) { b.hunt = false; b.path = null; b.lookUntil = G.T + 1; vset(b.lookAt, b.pos.x - Math.sin(b.yaw) * 5, 0, b.pos.z - Math.cos(b.yaw) * 5); return; }
   if (b.task === 'defuse') {
-    if (B.state === 'planted' && !B.defuser && dist2D(b.pos, B.pos) < 1.2) { B.defuser = b; B.need = b.kit ? 5 : 10; B.defuseT = 0; }
-    else if (B.defuser && B.defuser !== b) { b.task = 'hold'; const [c, r] = cellOf(B.pos.x, B.pos.z); b.wps = [nearCell(c, r, 2)]; b.wpi = 0; b.face = Math.random() * 6.28; }
+    if (B.state === 'planted' && !B.defuser && dist2D(b.pos, B.pos) < 1.2 && Math.abs(b.pos.y-B.pos.y)<.8) { B.defuser = b; B.need = b.kit ? 5 : 10; B.defuseT = 0; }
+    else if (B.defuser && B.defuser !== b) { assignTask(b); return; }
     b.path = []; b.pidx = 0; return;
   }
   if (b.task === 'fetch') return;
-  if (b.wpi < b.wps.length) { b.wpi++; b.path = null; if (b.task === 'route' || b.task === 'plant') b.routeIdx = b.wpi; }
+  if (b.wpi < b.wps.length) { b.wpi++; b.path = null; if (b.task === 'route' || b.task === 'plant') b.routeIdx = (b.routeOffset || 0) + b.wpi; }
+}
+function avoidTeammates(b, mv) {
+  if (!mv.speed || !b.onGround) return;
+  for (const other of G.ents) {
+    if (other === b || !other.alive || other.team !== b.team || Math.abs(other.pos.y-b.pos.y) > .8) continue;
+    const dx=other.pos.x-b.pos.x,dz=other.pos.z-b.pos.z,distance=Math.hypot(dx,dz);
+    if (distance > 1.15 || distance < .001 || dx*mv.x+dz*mv.z < .1) continue;
+    if (!other.human && b.id < other.id && Math.hypot(other.vel.x,other.vel.z) > .4) continue;
+    const side=b.id%2?1:-1;
+    for (const sign of [side,-side]) {
+      const x=-mv.z*sign,z=mv.x*sign;
+      if (World.canWalk(b.pos,{x:b.pos.x+x*.65,y:b.pos.y,z:b.pos.z+z*.65},entHeight(b))) { mv.x=x;mv.z=z;mv.speed=Math.min(mv.speed,.45);return; }
+    }
+    mv.speed=Math.min(mv.speed,.15);return;
+  }
 }
 function updateBot(b, dt) {
   if (!b.alive) return;
@@ -621,11 +728,20 @@ function updateBot(b, dt) {
   b.think -= dt;
   if (b.think <= 0) {
     b.think = .1 + Math.random() * .1; perceive(b, D);
-    if (b.team === 'T' && B.state === 'dropped' && b.task !== 'fetch' && !G.ents.some(o => o.alive && !o.human && o.task === 'fetch' && o.team === 'T')) assignTask(b);
+    if (b.team === 'T' && B.state === 'dropped') {
+      const runner = objectiveRunner('T', B.pos, 'fetchBot'); if ((runner === b) !== (b.task === 'fetch')) assignTask(b);
+    }
+    if (b.team === 'CT' && B.state === 'planted') {
+      const runner = B.defuser && B.defuser.alive ? B.defuser : objectiveRunner('CT', B.pos, 'defuseBot');
+      if (runner === b ? b.task !== 'defuse' : b.task !== 'cover') assignTask(b);
+    }
   }
   if (b.target && !b.target.alive) { b.target = null; b.targetVisible = false; }
   let mv;
   const defusing = B.defuser === b;
+  const fighting = !!(b.target && b.targetVisible);
+  if (!fighting && b.wasFighting && b.path && b.path[b.pidx] && !World.canWalk(b.pos,b.path[b.pidx],entHeight(b))) { b.path=null;b.repathAt=0; }
+  b.wasFighting=fighting;
   if (b.target && b.targetVisible && !(defusing && D === DIFFS.hard && B.need - B.defuseT < 2.5)) {
     if (defusing) { B.defuser = null; B.defuseT = 0; }
     b.planting = 0; mv = combat(b, D, dt);
@@ -635,12 +751,13 @@ function updateBot(b, dt) {
     if (defusing) { mv = { x: 0, z: 0, speed: 0, crouch: true }; b.yaw += angDiff(b.yaw, yawTo(b.pos, B.pos.x, B.pos.z)) * Math.min(1, dt * 5); b.pitch += (-.6 - b.pitch) * Math.min(1, dt * 5); }
     else {
       mv = navigate(b, dt);
-      if (b.hasBomb && B.state === 'carried' && b.wpi >= b.wps.length && siteAt(b.pos.x, b.pos.z, b.pos.y) && b.onGround) {
+      if (b.hasBomb && B.state === 'carried' && b.wpi >= b.wps.length - 1 && siteAt(b.pos.x, b.pos.z, b.pos.y) === G.tSite && b.onGround) {
         mv = { x: 0, z: 0, speed: 0, crouch: true }; b.planting += dt;
         if (b.planting >= 3.2 && G.phase === 'live') plantBomb(b);
       } else b.planting = 0;
     }
   }
+  avoidTeammates(b, mv);
   updateCrouch(b, mv.crouch ? 1 : 0, Math.min(1, dt * 8));
   drive(b, mv.x, mv.z, w.def.speed * (b.scoped && w.def.scope ? .5 : 1) * (b.crouch > .5 ? .34 : 1) * mv.speed, dt);
 }
@@ -654,7 +771,7 @@ function separate() {
       for (const [e, s] of [[a, -1], [b, 1]]) {
         if (e.human) continue; // humans are never moved by the server so client prediction stays exact
         const x = e.pos.x + nx * s, z = e.pos.z + nz * s;
-        if (!collides(x, e.pos.y, z, entHeight(e))) { e.pos.x = x; e.pos.z = z; }
+        if (!collides(x, e.pos.y, z, entHeight(e)) && (!e.onGround || World.canWalk(e.pos,{x,y:e.pos.y,z},entHeight(e)))) { e.pos.x = x; e.pos.z = z; }
       }
     }
   }
@@ -666,7 +783,7 @@ function lockState(e, k, btn, frozen, planted, bombPos, defuserOther) {
   if (frozen) return 1;
   const w = e.weapons[e.slot];
   if ((btn & 1) && w && w.def.c4 && e.onGround && siteAt(e.pos.x, e.pos.z, e.pos.y)) return 2;
-  if ((k & K.USE) && e.team === 'CT' && planted && !defuserOther && dist2D(e.pos, bombPos) < 1.6 && e.onGround) return 2;
+  if ((k & K.USE) && e.team === 'CT' && planted && !defuserOther && dist2D(e.pos, bombPos) < 1.6 && (bombPos.y === undefined || Math.abs(e.pos.y-bombPos.y)<1.5) && e.onGround) return 2;
   return 0;
 }
 Sim.lockState = lockState;
@@ -775,7 +892,7 @@ function spawnEnt(e, fresh) {
 }
 function startRound() {
   G.round++; G.phase = 'freeze'; G.freezeT = 6; G.roundT = 115; G.elapsed = 0; G.postT = 0; G.items.length = 0;
-  Object.assign(G.bomb, { state: 'none', carrier: null, defuser: null, defuseT: 0, site: null, plantedBy: null });
+  Object.assign(G.bomb, { state: 'none', carrier: null, defuser: null, defuseT: 0, site: null, plantedBy: null, fetchBot: null, defuseBot: null });
   fillBots();
   const order = shuffle(G.ents);
   for (const e of order) e._fresh = !e.alive;

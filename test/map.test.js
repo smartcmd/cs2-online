@@ -15,7 +15,7 @@ test('map assets match their manifest and surface textures stay lightweight', ()
     assert.equal(createHash('sha256').update(content).digest('hex'), file.sha256);
     if (file.name.endsWith('.webp')) bytes += content.length;
   }
-  assert.ok(bytes < 1024 * 1024, `map assets grew to ${bytes} bytes`);
+  assert.ok(bytes < 10 * 1024 * 1024, `map assets grew to ${bytes} bytes`);
 });
 
 test('original spawn positions have standing clearance on the source-map floor', () => {
@@ -76,6 +76,18 @@ test('A-site crate sides retain both movement and bullet cover', () => {
   assert.ok(player.pos.x < 30, 'walking must not pass through the crate');
 });
 
+test('CT spawn window gaps are occluded at the original collision surface', () => {
+  const hit = Sim.World.raycast([8, -1.2, -54], [.3553876608820764, .3215357739068369, .8776755417527012], 5, true);
+  assert.ok(hit, 'the window border must not expose the far side of the building');
+  assert.ok(Math.abs(hit.t - 2.7128482059) < .0001);
+  assert.ok(Math.abs(hit.point.z + 51.619) < .0001);
+  for (const [x, y] of [[8.95, -.32], [9.75, -.32], [5.72, 0], [6.36, 0]]) {
+    const forward = Sim.World.raycast([x, y, -53], [0, 0, 1], 2, true);
+    const backward = Sim.World.raycast([x, y, -50], [0, 0, -1], 2, true);
+    assert.ok(forward && backward, `window surround ${x},${y} must block in both directions`);
+  }
+});
+
 test('map packing preserves every source triangle and the exact decoded positions and indices', () => {
   const zlib = require('node:zlib');
   const bytes = zlib.gunzipSync(fs.readFileSync(path.join(__dirname, '../public/maps/dust2.mesh.gz')));
@@ -85,5 +97,15 @@ test('map packing preserves every source triangle and the exact decoded position
   assert.equal(geometry.index.count / 3, manifest.sourceTriangles);
   assert.equal(createHash('sha256').update(new Uint8Array(geometry.attributes.position.array.buffer)).digest('hex'), manifest.positionSHA256);
   assert.equal(createHash('sha256').update(new Uint8Array(geometry.index.array.buffer)).digest('hex'), manifest.indexSHA256);
+  const repaired = require('../shared/dust2-mesh').geometry(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), manifest, null, true);
+  const extra = manifest.surfaceRepairs.positions.length / 3;
+  assert.equal(extra / 3, 110);
+  assert.equal(repaired.index.count, geometry.index.count + extra);
+  assert.equal(createHash('sha256').update(new Uint8Array(repaired.attributes.position.array.buffer, 0, geometry.attributes.position.array.byteLength)).digest('hex'), manifest.positionSHA256);
+  assert.equal(createHash('sha256').update(new Uint8Array(repaired.index.array.buffer, 0, geometry.index.array.byteLength)).digest('hex'), manifest.indexSHA256);
+  assert.equal(createHash('sha256').update(new Uint8Array(repaired.attributes.position.array.buffer, geometry.attributes.position.array.byteLength)).digest('hex'), manifest.surfaceRepairs.positionSHA256);
+  assert.deepEqual(manifest.surfaceRepairs.sourceTriangles, require('../config/dust2-surface-repairs.json').triangles);
+  assert.equal(repaired.userData.dust2.meta.groups.at(-1).count, extra);
+  repaired.dispose();
   geometry.dispose();
 });

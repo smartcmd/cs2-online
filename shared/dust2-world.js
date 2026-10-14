@@ -168,8 +168,29 @@ api.nearest = function (x, z, y) {
   }
   return best;
 };
-api.path = function (x, z, tx, tz, y, ty) {
-  const start = byId.get(api.nearest(x, z, y).id), end = byId.get(api.nearest(tx, tz, ty).id);
+// Probe the same capsule and support surfaces as movement before skipping nav corners.
+api.canWalk = function (from, to, height = 1.8) {
+  const distance = Math.hypot(to.x - from.x, to.z - from.z);
+  const steps = Math.max(1, Math.ceil(distance / .1));
+  let feet = from.y;
+  for (let i = 1; i <= steps; i++) {
+    const x = from.x + (to.x - from.x) * i / steps, z = from.z + (to.z - from.z) * i / steps;
+    const support = api.support(x, z, feet, .45, .3);
+    if (support === null || api.blocked(x, support, z, height)) return false;
+    feet = support;
+  }
+  return to.y === undefined || Math.abs(feet - to.y) < .65;
+};
+api.path = function (x, z, tx, tz, y, ty, options = {}) {
+  function anchor(px, pz, py) {
+    if (!options.reachableAnchors || py === undefined) return api.nearest(px, pz, py);
+    const point = { x:px, y:py, z:pz };
+    const candidates = nodes.map(n=>({n,d:(n.x-px)**2+(n.z-pz)**2+4*(n.y-py)**2})).sort((a,b)=>a.d-b.d).slice(0,12);
+    return candidates.find(({n})=>api.canWalk(point,n))?.n || api.nearest(px,pz,py);
+  }
+  const first=anchor(x,z,y),last=api.nearest(tx,tz,ty);
+  if (!first || !last) return null;
+  const start = byId.get(first.id), end = byId.get(last.id);
   const cost = new Float64Array(nodes.length).fill(Infinity), previous = new Int32Array(nodes.length).fill(-1);
   const closed = new Uint8Array(nodes.length), open = new Set([start]); cost[start] = 0;
   const target = nodes[end];
@@ -178,7 +199,7 @@ api.path = function (x, z, tx, tz, y, ty) {
     for (const i of open) { const n = nodes[i], f = cost[i] + Math.hypot(n.x - target.x, n.z - target.z); if (f < best) { best = f; current = i; } }
     open.delete(current);
     if (current === end) {
-      const path = []; for (let i = end; i !== -1; i = previous[i]) path.push({ x: nodes[i].x, y: nodes[i].y, z: nodes[i].z });
+      const path = []; for (let i = end; i !== -1; i = previous[i]) path.push({ id: nodes[i].id, x: nodes[i].x, y: nodes[i].y, z: nodes[i].z });
       path.reverse();
       return path;
     }
@@ -186,6 +207,7 @@ api.path = function (x, z, tx, tz, y, ty) {
     const n = nodes[current];
     for (const id of n.neighbors) {
       const i = byId.get(id); if (i === undefined || closed[i]) continue;
+      if (options.avoid && options.avoid.has(n.id + ':' + id)) continue;
       const next = nodes[i], rise = next.y - n.y;
       // The original navigation includes crate jumps as well as walking links.
       if (rise > 1.35) continue;
@@ -200,7 +222,7 @@ if (node) {
   const bytes = require('node:zlib').gunzipSync(fs.readFileSync(path.join(__dirname, '../public/maps/dust2.mesh.gz')));
   const meta = require('../public/maps/dust2.json');
   const opacity = require('node:zlib').gunzipSync(fs.readFileSync(path.join(__dirname, '../public/maps/dust2-opacity.gz')));
-  api.init(require('./dust2-mesh').geometry(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), meta, opacity));
+  api.init(require('./dust2-mesh').geometry(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), meta, opacity, true));
   module.exports = api;
 } else root.Dust2World = api;
 })(typeof window !== 'undefined' ? window : globalThis);

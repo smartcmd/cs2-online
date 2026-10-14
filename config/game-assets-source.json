@@ -805,6 +805,60 @@
       "bytes": 18431,
       "sha256": "8cd76dacfedccbb212b8e8a63760ad1bb2ba3f9b22e0807c74fab48e98b8af29",
       "group": "audio"
+    },
+    {
+      "path": "assets/audio/music/optional/valve_cs2_01/bombtenseccount.mp3",
+      "bytes": 193802,
+      "sha256": "4e6cdfbec256018097cbe7fcdba29ee9f48f92b99573b999fbf049f46795a4db",
+      "group": "music"
+    },
+    {
+      "path": "assets/audio/music/optional/valve_cs2_01/deathcam.mp3",
+      "bytes": 93851,
+      "sha256": "85ed2e005d047e39eb5c8d98b7244eaeac017715fdd4643eb170931542ade7bf",
+      "group": "music"
+    },
+    {
+      "path": "assets/audio/music/optional/valve_cs2_01/lostround.mp3",
+      "bytes": 165781,
+      "sha256": "309f781ad72c60bc085026c535415da8553ec4d142e077743094db0160949a78",
+      "group": "music"
+    },
+    {
+      "path": "assets/audio/music/optional/valve_cs2_01/roundtenseccount.mp3",
+      "bytes": 193802,
+      "sha256": "4e6cdfbec256018097cbe7fcdba29ee9f48f92b99573b999fbf049f46795a4db",
+      "group": "music"
+    },
+    {
+      "path": "assets/audio/music/optional/valve_cs2_01/startround_01.mp3",
+      "bytes": 592022,
+      "sha256": "5327ee6c585471f9a12243c297a3ae979e952fc45bf5d4f7b715f5610c418df8",
+      "group": "music"
+    },
+    {
+      "path": "assets/audio/music/optional/valve_cs2_01/wonround.mp3",
+      "bytes": 92329,
+      "sha256": "38410faf3001f565b83843be843420c711771ea1e6cd522714c56e9184b477c3",
+      "group": "music"
+    },
+    {
+      "path": "assets/audio/cs2/mud_impact_bullet1.mp3",
+      "bytes": 9331,
+      "sha256": "ee43de17e90a1f41ec39749700fac0d375fdec1564d7ab71a1c83043cecad3c0",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/mud_impact_bullet2.mp3",
+      "bytes": 12697,
+      "sha256": "78ae42f46ef397df4a54ff402b1baf066f2cc2605e505d3f3ae9cd3c836c3eba",
+      "group": "audio"
+    },
+    {
+      "path": "assets/audio/cs2/mud_impact_bullet3.mp3",
+      "bytes": 8210,
+      "sha256": "2a6c80d1da38df53868fc023d4d334b94c90afd10ac21831c676671713e0d6f1",
+      "group": "audio"
     }
   ],
   "valveWorkshop": {

@@ -12,6 +12,24 @@ function run(source, globals) { const context = vm.createContext(globals); vm.ru
 
 test('client script parses', () => { new vm.Script(script); });
 
+test('defuse and victory announcements queue instead of talking over each other', () => {
+  const calls = [], ac = { currentTime: 10 };
+  const sounds = new Map(['bombdef', 'ctwin'].map(id => ['vo_announcer_cs2_classic_' + id + '.mp3', { duration: 1.5 }]));
+  const ctx = run(section('let announcerUntil =', '// ---------- models ----------'), { ac, GameAssets: { sounds }, sampleSound: (...args) => calls.push(args) });
+  ctx.say('Bomb has been defused'); ctx.say('Counter-Terrorists win');
+  assert.equal(calls[0][3], 0); assert.ok(Math.abs(calls[1][3] - 1.62) < .0001);
+  assert.equal(calls[1][4], 'announcer');
+  ac.currentTime = 20; ctx.say('Counter-Terrorists win'); assert.equal(calls[2][3], 0);
+});
+
+test('solid map faces render from both sides to agree with bullet occlusion', () => {
+  const THREE = require('three');
+  const ctx = run(section('function mapSurfaceSide(', 'const nextFrame'), { THREE });
+  assert.equal(ctx.mapSurfaceSide({ collidable: true, doubleSided: false }), THREE.DoubleSide);
+  assert.equal(ctx.mapSurfaceSide({ collidable: false, doubleSided: true }), THREE.DoubleSide);
+  assert.equal(ctx.mapSurfaceSide({ collidable: false, doubleSided: false }), THREE.FrontSide);
+});
+
 test('fullscreen toggles, updates labels and reports a denied request', async () => {
   const handlers = {}, button = { addEventListener() {} }, notices = [];
   const document = { fullscreenElement: null, querySelectorAll: () => [button], addEventListener: (name, fn) => handlers[name] = fn };
@@ -122,4 +140,21 @@ test('a delayed pointer capture cannot trap the cursor after leaving a match', (
   h.document.pointerLockElement = h.canvas; h.handlers.pointerlockchange();
   assert.equal(h.document.pointerLockElement, null);
   assert.equal(vm.runInContext('looking()', h.ctx), false);
+});
+
+test('a same-weapon respawn resets the draw action without rebuilding the whole model',()=>{
+ let builds=0,disposals=0,plays=0;
+ const ctx=run(section('function onWeaponView(', 'function localSlot('),{
+  cancelReloadSounds(){},vm:null,vmId:null,vScene:{remove(){},add(){}},P:{team:'CT'},W:{usp:{slot:2},ak47:{slot:1}},lt:0,
+  buildViewModel:()=>{builds++;return {userData:{official:true}};},GameAssets:{dispose(){disposals++;},playView(){plays++;}},sfx:{draw(){}},
+ });
+ ctx.onWeaponView('usp');ctx.onWeaponView('usp');assert.equal(builds,1);assert.equal(disposals,0);assert.equal(plays,2);
+ ctx.onWeaponView('ak47');assert.equal(builds,2);assert.equal(disposals,1);
+ ctx.onWeaponView(null);assert.equal(disposals,2);assert.equal(ctx.vm,null);
+});
+
+test('radar drawing uses observed dimensions without forcing layout after HUD style writes',()=>{
+ const rc={width:0,height:0,get clientWidth(){throw Error('forced layout');}},rg=new Proxy({},{get:()=>()=>{}});
+ const ctx=run(section('function drawRadar(', '// ---------- buy menu'),{rc,rg,radarCssWidth:104,devicePixelRatio:2,radarMap:{},RS:2,OX:0,OZ:0,CELL:1,P:{pos:{x:0,z:0},yaw:0,alive:true,team:'CT'},sample:new Map(),myId:1,bInfo:()=>[],bombState:()=> 'none'});
+ ctx.drawRadar(null);assert.equal(rc.width,208);assert.equal(rc.height,208);ctx.radarCssWidth=190;ctx.drawRadar(null);assert.equal(rc.width,380);
 });

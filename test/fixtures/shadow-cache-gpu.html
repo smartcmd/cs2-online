@@ -1,0 +1,44 @@
+<!doctype html><meta charset="utf-8"><title>Static sun shadow regression</title>
+<style>body{background:#18202c;color:#eef;font:14px monospace}canvas{max-width:100%}</style>
+<pre id="result">Running cached/full shadow comparison…</pre>
+<script src="/three.min.js"></script><script src="/render-optimizations.js"></script>
+<script>
+(async()=>{
+ const canvas=document.createElement('canvas'),legacy=new URLSearchParams(location.search).has('webgl1');
+ const T=THREE,r=new T.WebGLRenderer({canvas,context:legacy?canvas.getContext('webgl',{antialias:false}):undefined,antialias:false});r.setSize(512,384);r.shadowMap.enabled=true;r.shadowMap.type=T.PCFSoftShadowMap;document.body.appendChild(r.domElement);
+ const scene=new T.Scene(),cam=new T.PerspectiveCamera(55,512/384,.1,100);cam.position.set(9,8,12);cam.lookAt(0,1,0);
+ scene.add(new T.HemisphereLight(0xffffff,0x444444,.5));
+ const sun=new T.DirectionalLight(0xffffff,1);sun.position.set(-5,12,6);sun.castShadow=true;sun.shadow.mapSize.set(256,256);Object.assign(sun.shadow.camera,{left:-10,right:10,top:10,bottom:-10,near:.1,far:50});scene.add(sun,sun.target);
+ const map=new T.Group();scene.add(map);
+ const add=(parent,geo,color,x,y,z)=>{const m=new T.Mesh(geo,new T.MeshStandardMaterial({color,side:T.DoubleSide}));m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;parent.add(m);return m;};
+ add(map,new T.BoxGeometry(18,.2,18),0xaaaaaa,0,-.1,0);
+ add(map,new T.BoxGeometry(2,4,3),0xba9966,-2,2,-1);
+ const cutout=new T.DataTexture(new Uint8Array([0,0,0,255,255,255,255,255,255,255,255,255,0,0,0,255]),2,2);cutout.needsUpdate=true;
+ const fence=add(map,new T.BoxGeometry(3,3,.1),0x779966,3,1.5,-2);fence.material.alphaMap=cutout;fence.material.alphaTest=.5;
+ const actor=add(scene,new T.BoxGeometry(.8,2,.8),0x334477,0,1,2);
+ const target=new T.WebGLRenderTarget(512,384),a=new Uint8Array(512*384*4),b=new Uint8Array(a.length);
+ const cache=new RenderOptimizations.StaticSunShadow(T,r,scene,sun,map),results=[];
+ if(!cache.supported)throw Error('Fragment depth unavailable');
+ for(const resolution of [256,512,256]){
+  if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null;}sun.shadow.mapSize.set(resolution,resolution);
+  for(const x of [-4,0,4]){
+   actor.position.x=x;
+   cache.invalidate();r.setRenderTarget(target);r.render(scene,cam);r.readRenderTargetPixels(target,0,0,512,384,a);
+   cache.prepare(cam);r.render(scene,cam);r.readRenderTargetPixels(target,0,0,512,384,b);
+   const originalCache=new Uint8Array(resolution*resolution*4);r.readRenderTargetPixels(cache.cache,0,0,resolution,resolution,originalCache);
+   let changed=0,max=0,total=0;for(let i=0;i<a.length;i++){const d=Math.abs(a[i]-b[i]);if(d>1)changed++;max=Math.max(max,d);total+=d;}
+   results.push({resolution,x,changedChannels:changed,maxError:max,meanError:total/a.length});
+   // Move a dynamic caster after the bake to catch stale depth and ghost shadows.
+   actor.position.z=-3;cache.prepare(cam);r.render(scene,cam);r.readRenderTargetPixels(target,0,0,512,384,b);
+   const nextCache=new Uint8Array(originalCache.length);r.readRenderTargetPixels(cache.cache,0,0,resolution,resolution,nextCache);results.at(-1).cacheChanged=originalCache.some((v,i)=>v!==nextCache[i]);
+   cache.invalidate();actor.castShadow=false;r.render(scene,cam);const expectedStatic=new Uint8Array(originalCache.length);r.readRenderTargetPixels(sun.shadow.map,0,0,resolution,resolution,expectedStatic);results.at(-1).staticError=originalCache.reduce((n,v,i)=>n+(v!==expectedStatic[i]),0);actor.castShadow=true;
+   cache.invalidate();r.render(scene,cam);r.readRenderTargetPixels(target,0,0,512,384,a);
+   let dynamicError=0;for(let i=0;i<a.length;i++)dynamicError=Math.max(dynamicError,Math.abs(a[i]-b[i]));results.at(-1).dynamicMaxError=dynamicError;actor.position.z=2;
+  }
+ }
+ r.setRenderTarget(null);r.render(scene,cam);
+ for(const [label,pixels] of [['Full render',a],['Cached static depth',b]]){const box=document.createElement('div');box.textContent=label;const c=document.createElement('canvas');c.width=512;c.height=384;c.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(pixels),512,384),0,0);box.appendChild(c);document.body.prepend(box);}
+ const pass=results.every(x=>x.maxError<=1&&x.dynamicMaxError<=1&&!x.cacheChanged&&x.staticError===0);
+ document.getElementById('result').textContent=JSON.stringify({pass,webgl2:r.capabilities.isWebGL2,results},null,2);
+})().catch(e=>{document.getElementById('result').textContent='FAIL '+e.stack;});
+</script>

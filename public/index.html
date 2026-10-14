@@ -185,7 +185,7 @@ details.newroom[open]{padding-bottom:12px}details.newroom .opt{margin-top:10px}
 .gseg button.on{background:rgba(255,255,255,.14);border-bottom-color:var(--accent);color:#fff}
 .gseg button:disabled{opacity:.4;cursor:default}
 #gfx{background:rgba(6,7,9,.6);align-items:center;justify-content:center;z-index:30}
-#gfx .card{gap:14px;width:min(100%,760px)}.ggrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px 22px}.ggrid>*{min-width:0}#gfx .note2{margin:0;color:var(--t);font-size:13px;min-height:1em}
+#gfx .card{box-sizing:border-box;flex-shrink:0;gap:14px;width:min(100%,760px)}.ggrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px 22px}.ggrid>*{min-width:0}@media(max-width:600px){#gfx .card{padding:18px 16px}.ggrid{grid-template-columns:minmax(0,1fr)}}#gfx .note2{margin:0;color:var(--t);font-size:13px;min-height:1em}
 .gfxbtn{align-self:flex-start}
 #mapTour{position:absolute;left:24px;bottom:24px;z-index:30;padding:16px 18px;background:rgba(14,17,21,.92);border:1px solid var(--line);border-top:2px solid var(--sand);max-width:calc(100% - 48px)}
 #mapTour b{color:var(--sand);letter-spacing:.1em}#mapTour p{margin:8px 0 10px;color:var(--dim);font-size:13px}
@@ -296,6 +296,7 @@ body.touch #fps{top:calc(50px + env(safe-area-inset-top,0px))}
       <div class="opt"><label for="sens">鼠标灵敏度<output id="sensV">2.0</output></label><input type="range" id="sens" min="0.5" max="6" step="0.1"></div>
       <div class="opt"><label for="vol">音量<output id="volV">70</output></label><input type="range" id="vol" min="0" max="1" step="0.05"></div>
     </div>
+    <div class="opt"><label for="musicVol">回合音乐<output id="musicVolV">22</output></label><input type="range" id="musicVol" min="0" max="1" step="0.01"></div>
     <button id="start" class="go" disabled>正在载入沙二地图…</button>
     <div class="mapprog" id="mapProg"><div class="mapbar"><i id="mapBar"></i></div><div class="maptxt"><span id="mapLoad" role="status">正在获取地图信息…</span><b id="mapPct">0%</b></div></div>
     <p class="note" id="menuErr" hidden></p>
@@ -356,11 +357,16 @@ body.touch #fps{top:calc(50px + env(safe-area-inset-top,0px))}
   <div class="card">
     <h2>画质与操作</h2>
     <div class="ggrid">
-    <div class="opt"><span class="lab">画质预设</span><div class="gseg" data-g="preset"><button data-v="low">低</button><button data-v="mid">中</button><button data-v="high">高</button><button data-v="custom" disabled>自定义</button></div></div>
-    <div class="opt"><span class="lab">渲染分辨率</span><div class="gseg" data-g="res"><button data-v="0.5">50%</button><button data-v="0.75">75%</button><button data-v="1">100%</button><button data-v="native">原生</button></div></div>
-    <div class="opt"><span class="lab">阴影</span><div class="gseg" data-g="shadow"><button data-v="0">关</button><button data-v="1">低</button><button data-v="2">高</button></div></div>
+    <div class="opt"><span class="lab">画质预设</span><div class="gseg" data-g="preset"><button data-v="low">低</button><button data-v="mid">中</button><button data-v="high">高</button><button data-v="ultra">极高</button><button data-v="custom" disabled>自定义</button></div></div>
+    <div class="opt"><span class="lab">渲染分辨率</span><div class="gseg" data-g="res"><button data-v="0.5">50%</button><button data-v="0.75">75%</button><button data-v="1">100%</button><button data-v="1.25">125%</button><button data-v="1.5">150%</button><button data-v="native">原生</button></div></div>
+    <div class="opt"><span class="lab">阴影</span><div class="gseg" data-g="shadow"><button data-v="0">关</button><button data-v="1">1024</button><button data-v="2">2048</button><button data-v="3">4096</button></div></div>
     <div class="opt"><span class="lab">抗锯齿</span><div class="gseg" data-g="aa"><button data-v="0">关</button><button data-v="1">开</button></div></div>
     <div class="opt"><span class="lab">粒子特效</span><div class="gseg" data-g="fx"><button data-v="0">少</button><button data-v="1">多</button></div></div>
+    <div class="opt"><span class="lab">纹理过滤 · 斜面清晰度</span><div class="gseg" data-g="filter"><button data-v="1">1×</button><button data-v="4">4×</button><button data-v="8">8×</button><button data-v="16">16×</button></div></div>
+    <div class="opt"><span class="lab">贴图颜色精度</span><div class="gseg" data-g="texture"><button data-v="compact">省显存</button><button data-v="full">完整</button></div></div>
+    <div class="opt"><span class="lab">表面凹凸细节</span><div class="gseg" data-g="detail"><button data-v="0">简洁</button><button data-v="1">细致</button></div></div>
+    <div class="opt"><span class="lab">渲染帧率上限</span><div class="gseg" data-g="limit"><button data-v="30">30</button><button data-v="60">60</button><button data-v="90">90</button><button data-v="120">120</button><button data-v="0">不限</button></div></div>
+    <div class="opt"><span class="lab">第一人称枪模位置</span><div class="gseg" data-g="viewmodel"><button data-v="balanced">右下</button><button data-v="compact">紧凑</button><button data-v="center">居中</button></div></div>
     <div class="opt"><span class="lab">显示帧率</span><div class="gseg" data-g="fps"><button data-v="0">关</button><button data-v="1">开</button></div></div>
     <div class="opt"><span class="lab">触屏操作</span><div class="gseg" data-g="touch"><button data-v="auto">自动</button><button data-v="on">开</button><button data-v="off">关</button></div></div>
     <div class="opt"><label for="tsens">触屏视角灵敏度<output id="tsensV">1.0</output></label><input type="range" id="tsens" min="0.3" max="3" step="0.1"></div>
@@ -376,6 +382,14 @@ body.touch #fps{top:calc(50px + env(safe-area-inset-top,0px))}
 <script src="/gltf-loader.js"></script>
 <script src="/skeleton-utils.js"></script>
 <script src="/game-assets.js"></script>
+<script src="/graphics-settings.js"></script>
+<script src="/lighting.js"></script>
+<script src="/map-surfaces.js"></script>
+<script src="/source-material-arrays.js"></script>
+<script src="/source-materials.js"></script>
+<script src="/render-profiler.js"></script>
+<script src="/render-optimizations.js"></script>
+<script src="/game-audio.js"></script>
 <script src="/dust2-mesh.js"></script>
 <script src="/dust2-data.js"></script>
 <script src="/dust2-world.js"></script>
@@ -390,14 +404,16 @@ const rand = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const DEG = Math.PI / 180;
 const pick = a => a[Math.floor(Math.random() * a.length)];
-const settings = { name: '', room: 'public', team: 'auto', diff: 'normal', target: 8, sens: 2.0, vol: 0.7 };
+const settings = { name: '', room: 'public', team: 'auto', diff: 'normal', target: 8, sens: 2.0, vol: 0.7, musicVol: .22 };
 try { Object.assign(settings, JSON.parse(localStorage.getItem('cs2online-settings') || '{}')); } catch (e) {}
 function saveSettings() { try { localStorage.setItem('cs2online-settings', JSON.stringify(settings)); } catch (e) {} }
 // ---------- renderer ----------
 const IS_TOUCH = matchMedia('(pointer: coarse)').matches && !matchMedia('(pointer: fine)').matches;
-const GFX_PRESETS = { low: { res: '0.75', shadow: '0', aa: '0', fx: '0' }, mid: { res: '1', shadow: '1', aa: '1', fx: '1' }, high: { res: 'native', shadow: '2', aa: '1', fx: '1' } };
-settings.gfx = Object.assign({ preset: IS_TOUCH ? 'low' : 'high' }, GFX_PRESETS[IS_TOUCH ? 'low' : 'high'], { fps: '0', touch: 'auto', tsens: 1 }, settings.gfx || {});
-const gfxPixelRatio = () => settings.gfx.res === 'native' ? Math.min(window.devicePixelRatio || 1, 2) : +settings.gfx.res;
+const GFX_PRESETS = GraphicsSettings.presets;
+settings.gfx = GraphicsSettings.normalize(settings.gfx, IS_TOUCH);
+const gfxPixelRatio = () => GraphicsSettings.pixelRatio(settings.gfx.res, window.devicePixelRatio);
+const surfaceDetail = {value: settings.gfx.detail === '0' ? 0 : 1};
+const viewPose = () => GraphicsSettings.poses[settings.gfx.viewmodel];
 const renderer = new THREE.WebGLRenderer({ antialias: settings.gfx.aa === '1', powerPreference: 'high-performance' });
 renderer.setPixelRatio(gfxPixelRatio());
 renderer.setSize(innerWidth, innerHeight);
@@ -405,54 +421,58 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.autoClear = false;
 renderer.outputEncoding = THREE.sRGBEncoding;
-// CS2-style grade on top of ACES: slightly cool shadows, warm highlights
-THREE.ShaderChunk.tonemapping_pars_fragment = THREE.ShaderChunk.tonemapping_pars_fragment.replace('vec3 CustomToneMapping( vec3 color ) { return color; }', `vec3 CustomToneMapping( vec3 color ) {
-  color = ACESFilmicToneMapping( color );
-  float luma = dot( color, vec3( .2126, .7152, .0722 ) );
-  color *= mix( vec3( .97, .99, 1.03 ), vec3( 1.03, 1.0, .95 ), smoothstep( .05, .55, luma ) );
-  return saturate( color );
-}`);
-renderer.toneMapping = THREE.CustomToneMapping;
-renderer.toneMappingExposure = .9;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = .92;
 renderer.domElement.tabIndex = -1;
 $('view').appendChild(renderer.domElement);
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0xcfd2cd, 18, 360);
+scene.matrixAutoUpdate = false;
+scene.fog = new THREE.Fog(0xd4dfdf, 55, 380);
 const BASE_FOV = 74;
 const cam = new THREE.PerspectiveCamera(BASE_FOV, innerWidth / innerHeight, 0.05, 500);
 cam.rotation.order = 'YXZ';
 const vScene = new THREE.Scene();
-const vCam = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.01, 10);
+const vCam = new THREE.PerspectiveCamera(viewPose().fov, innerWidth / innerHeight, 0.01, 10);
 // one light balance for the world and the first-person model
-const SUN_POWER = 1.9, SKY_POWER = .5;
-const vHemi = new THREE.HemisphereLight(0xb4c6da, 0xbf9360, SKY_POWER); vScene.add(vHemi);
-const vSun = new THREE.DirectionalLight(0xffd8a4, SUN_POWER); vScene.add(vSun);
-const SUN_DIR = new THREE.Vector3(47, 85, 37).normalize(), INDOOR_SKY = .38;
+const SUN_POWER = 2.6, SKY_POWER = 1.0;
+const vHemi = new THREE.HemisphereLight(0xd7e7fa, 0xc8b89e, SKY_POWER); vScene.add(vHemi);
+const vSun = new THREE.DirectionalLight(new THREE.Color().fromArray(MapLighting.sunColor), SUN_POWER); vScene.add(vSun);
+const SUN_DIR = new THREE.Vector3().fromArray(MapLighting.sunDirection), INDOOR_SKY = .38;
 // indoor dimming shared by the map and everything standing on it (players dim less so they stay readable); filled in once the map loads
-const ENV = { coverMap: { value: null }, coverXform: { value: new THREE.Vector4() }, field: null };
+const ENV = { coverMap: { value: null }, coverXform: { value: new THREE.Vector4() }, field: null, volume: null, uniforms: { irradianceMap: {value:null}, irradianceOrigin: {value:new THREE.Vector3()}, irradianceSize: {value:new THREE.Vector3()}, irradianceStep: {value:3} } };
 function envLit(material) {
   material.onBeforeCompile = shader => {
+    Object.assign(shader.uniforms, ENV.uniforms);
     shader.uniforms.coverMap = ENV.coverMap; shader.uniforms.coverXform = ENV.coverXform;
     shader.vertexShader = 'varying vec3 vEnvPos;\n' + shader.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>\nvEnvPos = (modelMatrix * vec4(transformed, 1.0)).xyz;');
-    shader.fragmentShader = 'varying vec3 vEnvPos;\nuniform sampler2D coverMap;\nuniform vec4 coverXform;\n' + shader.fragmentShader.replace('#include <aomap_fragment>', `#include <aomap_fragment>
-      float envRoof = texture2D(coverMap, (vEnvPos.xz - coverXform.xy) * coverXform.zw).r * 48.0 - 12.0;
-      reflectedLight.indirectDiffuse *= mix(1.0, .5, smoothstep(.2, 1.6, envRoof - vEnvPos.y - .3));`);
+    shader.fragmentShader = MapLighting.glsl + 'varying vec3 vEnvPos;\nuniform sampler2D coverMap;\nuniform vec4 coverXform;\n' + shader.fragmentShader.replace('#include <aomap_fragment>', `#include <aomap_fragment>
+      vec3 environment = max(vec3(.5), mapIrradiance(vEnvPos));
+      reflectedLight.indirectDiffuse *= environment;
+      reflectedLight.indirectSpecular *= environment;`);
   };
-  material.customProgramCacheKey = () => 'env-lit';
+  material.envMapIntensity = .35;
+  material.customProgramCacheKey = () => 'env-lit-volume';
   return material;
 }
 addEventListener('resize', () => {
+  renderer.setPixelRatio(gfxPixelRatio());
   renderer.setSize(innerWidth, innerHeight);
   cam.aspect = vCam.aspect = innerWidth / innerHeight;
   cam.updateProjectionMatrix(); vCam.updateProjectionMatrix();
 });
 
 // ---------- procedural textures ----------
-const ANISO = renderer.capabilities.getMaxAnisotropy();
+const ANISO = renderer.capabilities.getMaxAnisotropy(), worldTextures = new Set();
+function registerTexture(texture) { worldTextures.add(texture); texture.anisotropy=GraphicsSettings.filtering(settings.gfx.filter, ANISO); return texture; }
+function applyTextureFiltering() {
+  const value=GraphicsSettings.filtering(settings.gfx.filter, ANISO);
+  for(const texture of worldTextures) if(texture.anisotropy!==value){texture.anisotropy=value;texture.needsUpdate=true;}
+  GameAssets.setTextureFiltering(value);
+}
 function canvasTex(size, draw) {
   const c = document.createElement('canvas'); c.width = c.height = size;
   const g = c.getContext('2d'); draw(g, size);
-  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = ANISO;
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; registerTexture(t);
   return t;
 }
 function speckle(g, s, n, cols, a, size = 2) {
@@ -477,7 +497,7 @@ const texHole = canvasTex(64, (g, s) => {
   g.fillStyle = 'rgba(40,30,20,.55)'; g.beginPath(); g.arc(s / 2, s / 2, s * 0.42, 0, 7); g.fill();
   g.fillStyle = 'rgba(10,8,6,.95)'; g.beginPath(); g.arc(s / 2, s / 2, s * 0.2, 0, 7); g.fill();
 });
-// ---------- audio (all synthesized) ----------
+// ---------- audio ----------
 let ac = null, master = null, noiseBuf = null;
 function initAudio() {
   if (ac) { ac.resume && ac.resume(); return; }
@@ -517,16 +537,28 @@ function tone({ f0 = 440, f1 = null, dur = .1, type = 'sine', gain = .3, pos = n
   const env = ac.createGain(); env.gain.setValueAtTime(gain, t); env.gain.exponentialRampToValueAtTime(0.001, t + dur);
   o.connect(env); env.connect(out(pos, 1)); o.start(t); o.stop(t + dur + 0.02);
 }
-const reloadSounds = new Set();
-function cancelReloadSounds() { for (const source of reloadSounds) { try { source.stop(); } catch (error) {} } reloadSounds.clear(); }
-function sampleSound(name, pos, gain = 1, delay = 0, reload = false) {
+const soundGroups = new Map();
+function stopSoundGroup(group) { for (const source of soundGroups.get(group) || []) { try { source.output.gain.setTargetAtTime(0, ac.currentTime, .008); source.stop(ac.currentTime + .03); } catch (error) {} } soundGroups.delete(group); }
+function cancelReloadSounds() { stopSoundGroup('weapon'); }
+function sampleSound(name, pos, gain = 1, delay = 0, group = null, offset = 0) {
   const buffer = GameAssets.sounds.get(name);
-  if (!ac || !buffer) return false;
-  const source = ac.createBufferSource(), output = out(pos, gain); source.buffer = buffer;
-  source.connect(output); source.onended = () => { reloadSounds.delete(source); source.disconnect(); output.disconnect(); };
-  if (reload) reloadSounds.add(source);
-  source.start(ac.currentTime + delay); return true;
+  if (!ac || !buffer || offset >= buffer.duration) return false;
+  if (group === true) group = 'weapon';
+  const source = ac.createBufferSource(), output = out(pos, gain); source.buffer = buffer; source.output = output;
+  source.connect(output); source.onended = () => { if (group) soundGroups.get(group)?.delete(source); source.disconnect(); output.disconnect(); };
+  if (group) { if (!soundGroups.has(group)) soundGroups.set(group, new Set()); soundGroups.get(group).add(source); }
+  source.start(ac.currentTime + delay, Math.max(0, offset)); return true;
 }
+const audioDirector = new GameAudio.Director({
+  stop: stopSoundGroup,
+  countdown: second => { tone({f0: second ? 1050 : 1450, dur: second ? .07 : .16, type:'sine', gain:.08}); },
+  play: (name, options) => {
+    if (options.pos && Math.hypot(options.pos.x-cam.position.x,options.pos.z-cam.position.z) > options.range) return;
+    const buffer = GameAssets.sounds.get(name);
+    const offset = options.remaining !== undefined && buffer ? Math.max(0,buffer.duration-options.remaining) : options.offset || 0;
+    sampleSound(name, options.pos || null, options.gain * (options.group === 'music' ? settings.musicVol : 1), 0, options.group, offset);
+  },
+});
 const sfx = {
   shot(kind, pos) {
     const recording = { ak: 'ak47_01', m4: 'm4a1_01', rifle: 'galil_01', pistol: 'glock_02', usp: 'usp_01', deagle: 'deagle_01', awp: 'awp_01' }[kind];
@@ -542,26 +574,28 @@ const sfx = {
   head() { if (sampleSound('headshot_armor_e1.mp3', null, .7)) return; tone({ f0: 2900, dur: .14, type: 'triangle', gain: .25 }); tone({ f0: 4300, dur: .08, type: 'sine', gain: .12 }); },
   hit() { tone({ f0: 210, f1: 120, dur: .06, gain: .25 }); },
   hurt() { if (sampleSound('kevlar_01.mp3', null, .7)) return; noise({ dur: .12, freq: 500, q: 2, gain: .5 }); },
-  reload(id) {
-    cancelReloadSounds();
-    const clips = { ak47: ['ak47_clipout_01', 'ak47_boltpull_01'], m4a4: ['m4a1_clipout', 'm4a1_clipin'], glock: ['glock_clipout', 'glock_clipin'], usp: ['usp_clipout_01', 'usp_clipin_02'], awp: ['awp_clipout', 'awp_clipin'], deagle: ['de_clipout', 'glock_clipin'] }[id] || ['m4a1_clipout', 'm4a1_clipin'];
-    if (sampleSound(clips[0] + '.mp3', null, .65, 0, true)) { sampleSound(clips[1] + '.mp3', null, .65, (W[id]?.reload || 2) * .65, true); return; }
-    noise({ dur: .03, freq: 3200, type: 'highpass', gain: .4 }); noise({ dur: .04, freq: 2400, type: 'highpass', gain: .4, delay: .45 }); },
+  reload(id, pos = null, group = 'weapon') {
+    stopSoundGroup(group);
+    const clips = GameAudio.weapon(id), duration = W[id]?.reload || 2;
+    for (const [index, time] of [[1,.08],[2,.56],[3,.86]]) if (clips[index]) sampleSound(clips[index]+'.mp3', pos, .55, duration*time, group);
+  },
+  draw(id) { sampleSound(GameAudio.weapon(id)[0]+'.mp3', null, .5, 0, 'weapon'); },
+  scope() { noise({dur:.035,freq:2400,type:'highpass',gain:.12}); },
   dry() { noise({ dur: .02, freq: 3500, type: 'highpass', gain: .4 }); },
   knife(pos) { if (sampleSound('knife_swish_light_01.mp3', pos, .7)) return; noise({ dur: .14, freq: 3200, q: 3, gain: .35, pos }); },
-  beep(pos) { if (sampleSound('weapons_c4_c4_beep2.mp3', pos, .32)) return; tone({ f0: 2150, dur: .08, type: 'square', gain: .07, pos }); },
+  beep(pos, urgent = false) { if (urgent && sampleSound("weapons_c4_c4_beep2_10sec.mp3", pos, .32)) return; if (sampleSound('weapons_c4_c4_beep2.mp3', pos, .32)) return; tone({ f0: 2150, dur: .08, type: 'square', gain: .07, pos }); },
   explode(pos) { if (sampleSound('weapons_c4_c4_explode_close_01.mp3', pos, 1)) return; noise({ dur: 1.8, freq: 700, type: 'lowpass', gain: 2.2, pos }); tone({ f0: 60, f1: 22, dur: 1.3, gain: 1, pos }); },
   buy() { tone({ f0: 900, dur: .05, type: 'triangle', gain: .15 }); },
   tick() { tone({ f0: 1400, dur: .03, type: 'square', gain: .05 }); },
 };
+let announcerUntil = 0;
 function say(text) {
   const recording = { 'Counter-Terrorists win': 'ctwin', 'Terrorists win': 'terwin', 'Bomb has been planted': 'bombpl', 'Bomb has been defused': 'bombdef' }[text];
-  if (recording && sampleSound('vo_announcer_cs2_classic_' + recording + '.mp3', null, .8)) return;
-  try {
-    if (!('speechSynthesis' in window) || settings.vol <= 0) return;
-    const u = new SpeechSynthesisUtterance(text); u.lang = 'en-US'; u.rate = 1.05; u.pitch = .75; u.volume = settings.vol;
-    speechSynthesis.cancel(); speechSynthesis.speak(u);
-  } catch (e) {}
+  const name = 'vo_announcer_cs2_classic_' + recording + '.mp3', buffer = GameAssets.sounds.get(name);
+  if (!recording || !ac || !buffer) return;
+  const delay = Math.max(0, announcerUntil - ac.currentTime);
+  sampleSound(name, null, .8, delay, 'announcer'); announcerUntil = ac.currentTime + delay + buffer.duration + .12;
+
 }
 
 // ---------- models ----------
@@ -748,7 +782,12 @@ function clearFx() {
 
 // ---------- world meshes (geometry comes from the shared simulation) ----------
 const { OX, OZ, CELL, COLS, ROWS, grid, W, K } = Sim;
-let mapReady = false, mapPreview = null;
+let loadedTexturePrecision='compact';
+let mapReady = false, mapPreview = null, staticSunShadow = null, loadedSourceDetails = false;
+function mapSurfaceSide(surface) {
+  // Solid faces block bullets from either direction in the shared triangle world.
+  return surface.collidable || surface.doubleSided ? THREE.DoubleSide : THREE.FrontSide;
+}
 const nextFrame = () => new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve)));
 function mapProgress(k, text) {
   $('mapBar').style.width = (k * 100).toFixed(1) + '%'; $('mapPct').textContent = Math.floor(k * 100) + '%';
@@ -758,6 +797,7 @@ const tourPoints = {
   'A 包点': [[21, 4.3, -61], [32, 3.4, -66]],
   'A 小道': [[13.5001, 4.8374, -56.5594], [30, 3.5, -65]],
   'CT 通道': [[8.0804, -1.5772, -57.1595], [25, -1, -57]],
+  'CT 窗框': [[11, -1.2, -53], [9, 0, -51.7]],
   '中路塔楼': [[12, 4.5, -51], [5, 8, -52]],
   'B 洞出口': [[-42.6339, 1.6072, -48.0187], [-40, 1.6, -65]],
   'B 包点': [[-38, 2.2, -58], [-43, 1.9, -70]],
@@ -765,6 +805,7 @@ const tourPoints = {
   'A 大道': [[40, 3, -17], [39, 1, -47]],
   'B 洞': [[-43, 2.4, -32], [-43, 1.6, -47]],
   'T 出生点': [[-18, 5.5, 22], [-8, 1, 5]],
+  'T 区窗户': [[-20, 10.5, 20], [-20, 12, 27]],
 };
 for (const [name, view] of Object.entries(tourPoints)) {
   const button = document.createElement('button'); button.className = 'btn2'; button.textContent = name;
@@ -782,39 +823,47 @@ $('tourExit').onclick = () => { mapPreview = null; $('menu').hidden = false; $('
         return mix(mix(cloudHash(i),cloudHash(i+vec2(1,0)),f.x),mix(cloudHash(i+vec2(0,1)),cloudHash(i+vec2(1,1)),f.x),f.y); }
       void main(){
         vec3 d=normalize(vSky); float h=max(d.y,0.0);
-        vec3 c=mix(vec3(.8,.82,.8),vec3(.34,.53,.76),pow(h,.6));
+        vec3 c=mix(vec3(.78,.85,.9),vec3(.30,.52,.78),pow(h,.6));
         c=mix(c,vec3(.8,.79,.75),smoothstep(.03,-.06,d.y));
         vec2 q=d.xz/(d.y+.12)*1.6+vec2(3.1,7.4), w=vec2(4.,.9);
         float n=0.0, a=.5; for(int i=0;i<5;i++){ n+=a*cloudNoise(q*w); w*=2.1; a*=.5; }
-        float cloud=smoothstep(.5,.85,n)*smoothstep(.02,.25,d.y)*.55;
+        float cloud=smoothstep(.64,.9,n)*smoothstep(.02,.25,d.y)*.23;
         c=mix(c,vec3(.9,.9,.88),cloud);
         float s=max(dot(d,sunDir),0.0);
         c+=vec3(1.,.88,.68)*(pow(s,5.)*.1+pow(s,40.)*.22)+vec3(1.,.97,.9)*smoothstep(.9993,.9996,s);
         gl_FragColor=vec4(min(c,1.0),1.0);
       }`,
-  })); scene.add(sky);
+  })); sky.renderOrder = 1; scene.add(sky);
+  const reflectionScene = new THREE.Scene(); reflectionScene.add(sky.clone());
+  const pmrem = new THREE.PMREMGenerator(renderer), environment = pmrem.fromScene(reflectionScene, 0);
+  scene.environment = vScene.environment = environment.texture; pmrem.dispose();
   // soft sky from above, warm sand bounce from below; the lighting map dims this indoors and in corners
-  scene.add(new THREE.HemisphereLight(0xb4c6da, 0xbf9360, SKY_POWER));
-  const sun = new THREE.DirectionalLight(0xffd8a4, SUN_POWER);
+  scene.add(new THREE.HemisphereLight(0xd7e7fa, 0xc8b89e, SKY_POWER));
+  const sun = new THREE.DirectionalLight(new THREE.Color().fromArray(MapLighting.sunColor), SUN_POWER);
   sun.position.copy(SUN_DIR).multiplyScalar(100).add(new THREE.Vector3(-5, 0, -25)); sun.target.position.set(-5, 0, -25);
-  sun.castShadow = settings.gfx.shadow !== '0'; sun.shadow.mapSize.set(2048, 2048);
+  sun.castShadow = settings.gfx.shadow !== '0'; sun.shadow.mapSize.set(GraphicsSettings.shadowSize(settings.gfx.shadow), GraphicsSettings.shadowSize(settings.gfx.shadow));
   Object.assign(sun.shadow.camera, { left: -74, right: 74, top: 74, bottom: -74, near: 1, far: 230 });
-  sun.shadow.bias = -.00012; sun.shadow.normalBias = .035;
+  Object.assign(sun.shadow, MapSurfaces.shadowBias(148, sun.shadow.mapSize.x, sun.shadow.camera.far - sun.shadow.camera.near));
   scene.add(sun, sun.target); window.SUN = sun;
   fetch('/maps/dust2.json', { cache: 'no-cache' }).then(async response => {
     if (!response.ok) throw new Error('地图信息缺失');
     const meta = await response.json(), file = meta.files.find(f => f.name === 'dust2.mesh.gz');
-    const atlasFile = meta.files.find(f => f.name === 'surface-atlas.webp');
+    const sourceInfo=meta.files.find(f=>f.name==='dust2-source-materials.json');
+    const sourceResponse=await fetch('/maps/dust2-source-materials.json?v='+sourceInfo.sha256.slice(0,12));if(!sourceResponse.ok)throw Error('源材质清单缺失');
+    const sourceManifest=await sourceResponse.json();
+    const materialMode=new URLSearchParams(location.search).get('materialMode')||(settings.gfx.detail==='0'?'color':'detail');
+    const sourceFile=meta.files.find(f=>f.name==='dust2-source-surfaces.gz');
+    const lightFile = meta.files.find(f => f.name === 'dust2-lighting.json.gz');
     const opacityFile = meta.files.find(f => f.name === 'dust2-opacity.gz');
     // downloads fill the first 85% of the bar; .gz files arrive decompressed, so progress is measured
     // against the raw size and shown as the share of the transfer size
-    const loads = [file, opacityFile, atlasFile].map(f => ({ size: f.raw || f.bytes, bytes: f.bytes, got: 0 }));
+    const loads = [file, opacityFile, sourceFile, lightFile].map(f => ({ size: f.raw || f.bytes, bytes: f.bytes, got: 0 }));
     const totalMB = loads.reduce((n, l) => n + l.bytes, 0) / 1048576;
     let shownPct = -1;
     const showDownload = () => {
       const got = loads.reduce((n, l) => n + Math.min(1, l.got / l.size) * l.bytes, 0) / 1048576, k = got / totalMB * .85;
       if (Math.floor(k * 100) === shownPct) return; shownPct = Math.floor(k * 100);
-      mapProgress(k, `正在下载地图 ${got.toFixed(1)} / ${totalMB.toFixed(1)} MB`);
+      mapProgress(k, `正在下载基础地图 ${got.toFixed(1)} / ${totalMB.toFixed(1)} MiB`);
     };
     const download = async (f, load, missing) => {
       const r = await fetch('/maps/' + f.name + '?v=' + f.sha256.slice(0, 12));
@@ -830,28 +879,18 @@ $('tourExit').onclick = () => { mapPreview = null; $('menu').hidden = false; $('
       load.got = load.size; showDownload(); return out.buffer;
     };
     showDownload();
-    const [packed, opacityBuffer, atlasBuffer] = await Promise.all([
-      download(file, loads[0], '地图模型缺失'), download(opacityFile, loads[1], '地图透明轮廓加载失败'), download(atlasFile, loads[2], '地图贴图缺失'),
+    const [packed, opacityBuffer, sourceBuffer, lightBuffer] = await Promise.all([
+      download(file, loads[0], '地图模型缺失'), download(opacityFile, loads[1], '地图透明轮廓加载失败'), download(sourceFile, loads[2], '源材质映射缺失'), download(lightFile, loads[3], '地图光照缺失'),
     ]);
+    const lightField = JSON.parse(new TextDecoder().decode(lightBuffer)); MapLighting.validate(lightField, meta);
+    lightField.pixels = Uint8Array.from(atob(lightField.pixels), c => c.charCodeAt(0)); ENV.volume = lightField;
+    const lightTexture = new THREE.DataTexture(lightField.pixels, lightField.size[0], lightField.size[1] * lightField.size[2], THREE.RGBAFormat);
+    lightTexture.magFilter = lightTexture.minFilter = THREE.LinearFilter; lightTexture.needsUpdate = true;
+    ENV.uniforms.irradianceMap.value = lightTexture; ENV.uniforms.irradianceOrigin.value.fromArray(lightField.origin);
+    ENV.uniforms.irradianceSize.value.fromArray(lightField.size); ENV.uniforms.irradianceStep.value = lightField.step;
     mapProgress(.87, '正在解析地图模型…'); await nextFrame();
-    const atlasUrl = URL.createObjectURL(new Blob([atlasBuffer], { type: 'image/webp' }));
-    const atlas = await new THREE.TextureLoader().loadAsync(atlasUrl); URL.revokeObjectURL(atlasUrl);
-    atlas.anisotropy = Math.min(8, ANISO);
-    // average brightness of each atlas quadrant, so flat-tinted surfaces can borrow the texture's detail
-    const quadMean = (() => {
-      const c = document.createElement('canvas'); c.width = c.height = 32;
-      const ctx = c.getContext('2d'); ctx.drawImage(atlas.image, 0, 0, 32, 32);
-      const px = ctx.getImageData(0, 0, 32, 32).data, sum = [0, 0, 0, 0];
-      for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) {
-        const k = (y * 32 + x) * 4, l = .299 * (px[k] / 255) ** 2.2 + .587 * (px[k + 1] / 255) ** 2.2 + .114 * (px[k + 2] / 255) ** 2.2;
-        sum[(y < 16 ? 2 : 0) + (x < 16 ? 0 : 1)] += l / 256; // quadrant index from uv: (u >= .5) + 2 * (v >= .5)
-      }
-      return sum;
-    })();
-    // wrapped UVs need explicit gradients or every tile seam drops to the smallest mip and shows a line
-    const sampleAtlas = renderer.capabilities.isWebGL2 ? 'textureGrad(surfaceAtlas,atlasUv,dFdx(atlasTile),dFdy(atlasTile))' : 'texture2D(surfaceAtlas,atlasUv)';
     const opacity = new Uint8Array(opacityBuffer);
-    const geometry = Dust2Mesh.geometry(packed, meta, opacity);
+    const geometry = Dust2Mesh.geometry(packed, meta, opacity, true);
     mapProgress(.9, '正在建立精确地图碰撞…'); await nextFrame();
     Sim.World.init(geometry);
     mapProgress(.96, '正在计算光照…'); await nextFrame();
@@ -900,92 +939,31 @@ $('tourExit').onclick = () => { mapPreview = null; $('menu').hidden = false; $('
     const coverXform = new THREE.Vector4(gb.min.x - CELL / 2, gb.min.z - CELL / 2, 1 / (coverW * CELL), 1 / (coverH * CELL));
     ENV.coverMap.value = coverMap; ENV.coverXform.value.copy(coverXform);
     ENV.field = { roof, w: coverW, h: coverH, x0: gb.min.x, z0: gb.min.z, cell: CELL };
-    const alphaTextures = new Map();
-    function alphaTexture(surface) {
-      const { mask, wrapS, wrapT } = surface, key = mask + ':' + wrapS + ':' + wrapT;
-      if (alphaTextures.has(key)) return alphaTextures.get(key);
-      const info = meta.opacity.tiles[mask], { width, height } = info, rgba = new Uint8Array(width * height * 4);
-      for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
-        const value = opacity[info.offset + y * width + x], offset = (y * width + x) * 4;
-        rgba[offset] = rgba[offset + 1] = rgba[offset + 2] = value; rgba[offset + 3] = 255;
-      }
-      const texture = new THREE.DataTexture(rgba, width, height, THREE.RGBAFormat);
-      const wrapping = { 10497: THREE.RepeatWrapping, 33071: THREE.ClampToEdgeWrapping, 33648: THREE.MirroredRepeatWrapping };
-      texture.wrapS = wrapping[wrapS]; texture.wrapT = wrapping[wrapT];
-      texture.magFilter = texture.minFilter = THREE.LinearFilter; texture.needsUpdate = true;
-      alphaTextures.set(key, texture); return texture;
-    }
-    const materials = meta.materials.map((surface, materialIndex) => {
-      const type = surface.type;
-      const material = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: type !== 4, roughness: type === 3 ? .7 : .94, metalness: type === 3 ? .12 : 0 });
-      material.visible = surface.visible;
-      material.side = surface.doubleSided ? THREE.DoubleSide : THREE.FrontSide;
-      material.transparent = surface.overlay; material.depthWrite = !surface.overlay;
-      if (surface.mask >= 0) { material.alphaMap = alphaTexture(surface); material.alphaTest = surface.overlay ? .02 : surface.cutoff; }
-      material.polygonOffset = surface.bias; material.polygonOffsetFactor = -(surface.depthLayer || 1); material.polygonOffsetUnits = -2 * (surface.depthLayer || 1);
-      const quadrant = type === 0 ? [0, .5] : type === 2 ? [.5, 0] : type === 5 || type === 3 ? [0, 0] : [.5, .5];
-      const scale = type === 0 ? 2.6 : type === 2 ? 2.4 : type === 5 ? 5.5 : 4.5;
-      material.onBeforeCompile = shader => {
-        shader.uniforms.surfaceAtlas = { value: atlas };
-        shader.uniforms.coverMap = { value: coverMap }; shader.uniforms.coverXform = { value: coverXform };
-        shader.vertexShader = 'varying vec3 vSurface;\n' + shader.vertexShader;
-        shader.vertexShader = shader.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nvSurface = position;');
-        shader.fragmentShader = `varying vec3 vSurface;
-          uniform sampler2D surfaceAtlas, coverMap;
-          uniform vec4 coverXform;
-          vec3 surfaceBump(vec3 p, vec3 n, float height){
-            vec3 sx=dFdx(p), sy=dFdy(p), r1=cross(sy,n), r2=cross(n,sx);
-            float determinant=dot(sx,r1);
-            vec3 gradient=sign(determinant)*(dFdx(height)*r1+dFdy(height)*r2);
-            return normalize(abs(determinant)*n-gradient);
-          }
-        ` + shader.fragmentShader;
-        shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
-          vec3 faceNormal = normalize(cross(dFdx(vSurface), dFdy(vSurface)));
-          if (dot(faceNormal, cameraPosition - vSurface) < 0.0) faceNormal = -faceNormal;
-          vec3 coverProbe = vSurface + faceNormal * .75;
-          vec4 lightCell = texture2D(coverMap, (coverProbe.xz - coverXform.xy) * coverXform.zw);
-          float indoor = smoothstep(.2, 1.6, lightCell.r * 48.0 - 12.0 - coverProbe.y);
-          float wallBase = smoothstep(-.1, 1.8, vSurface.y - (lightCell.b * 48.0 - 12.0));
-          float contact = faceNormal.y > .6 ? lightCell.g : mix(1.0, mix(.45, 1.0, wallBase), smoothstep(.5, .2, abs(faceNormal.y)));
-          float skyLight = mix(contact, ${INDOOR_SKY}, indoor);
-          // warm bounce off the sunlit ground onto faces turned away from the sun
-          float bounce = (1.0 - indoor) * max(0.0, -dot(normalize(faceNormal.xz + 1e-4), normalize(vec2(.79, .62)))) * (1.0 - abs(faceNormal.y));
-          vec3 surfaceNormal = abs(faceNormal);
-          vec2 surfaceUv = surfaceNormal.y > .7 ? vSurface.xz : (surfaceNormal.x > surfaceNormal.z ? vSurface.zy : vSurface.xy);
-          vec2 atlasTile = surfaceUv / ${scale.toFixed(1)} * .492;
-          vec2 atlasUv = vec2(${quadrant[0].toFixed(1)},${quadrant[1].toFixed(1)}) + .004 + fract(surfaceUv / ${scale.toFixed(1)}) * .492;
-          vec3 surfaceSample = pow(${sampleAtlas}.rgb,vec3(2.2));
-          float surfaceHeight = dot(surfaceSample,vec3(.299,.587,.114));
-          ${type === 2 ? "surfaceSample *= 2.6;" : ""}
-          float weather = .92 + .08*sin(vSurface.x*.7+sin(vSurface.z*.4))*sin(vSurface.y*1.3);
-          ${type === 4 ? 'diffuseColor.rgb *= weather;' : type === 3 || type === 6 ? 'diffuseColor.rgb *= mix(1.0, surfaceHeight / ' + quadMean[(quadrant[0] ? 1 : 0) + (quadrant[1] ? 2 : 0)].toFixed(3) + ', ' + (type === 3 ? '.75' : '.9') + ') * weather;' : 'diffuseColor.rgb = surfaceSample * mix(vec3(1.0), diffuseColor.rgb * 1.5, .28) * weather;'}
-        `);
-        shader.fragmentShader = shader.fragmentShader.replace('#include <aomap_fragment>', '#include <aomap_fragment>\nreflectedLight.indirectDiffuse = reflectedLight.indirectDiffuse * skyLight + material.diffuseColor * vec3(.38, .27, .16) * bounce * mix(.5, 1.0, wallBase);');
-        shader.fragmentShader = shader.fragmentShader.replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
-          ${type === 4 ? '' : 'normal=surfaceBump(-vViewPosition,normal,surfaceHeight*' + (type === 0 ? '.012' : type === 2 ? '.006' : '.003') + ');'}
-        `);
+    const sourceLit=material=>{
+      material.envMapIntensity=.22;
+      const previousCompile=material.onBeforeCompile;
+      material.onBeforeCompile=shader=>{
+        previousCompile(shader);
+        Object.assign(shader.uniforms,ENV.uniforms);shader.uniforms.coverMap={value:coverMap};shader.uniforms.coverXform={value:coverXform};shader.uniforms.surfaceDetail=surfaceDetail;
+        shader.vertexShader='varying vec3 vSourcePosition;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvSourcePosition=(modelMatrix*vec4(position,1.)).xyz;');
+        shader.fragmentShader=MapLighting.glsl+'varying vec3 vSourcePosition; uniform sampler2D coverMap; uniform vec4 coverXform; uniform float surfaceDetail;\n'+shader.fragmentShader;
+        shader.fragmentShader=shader.fragmentShader.replace('#include <aomap_fragment>',`#include <aomap_fragment>
+          vec3 sourceFace=normalize(cross(dFdx(vSourcePosition),dFdy(vSourcePosition)));
+          if(dot(sourceFace,cameraPosition-vSourcePosition)<0.)sourceFace=-sourceFace;
+          vec4 cell=texture2D(coverMap,(vSourcePosition.xz+sourceFace.xz*.75-coverXform.xy)*coverXform.zw);
+          float base=smoothstep(-.1,1.8,vSourcePosition.y-(cell.b*48.-12.));
+          float contact=mix(mix(1.,mix(.45,1.,base),1.-smoothstep(.2,.5,abs(sourceFace.y))),cell.g,smoothstep(.45,.75,sourceFace.y));
+          vec3 ambient=mapIrradiance(vSourcePosition+sourceFace*.15)*mix(.86,1.,contact);
+          reflectedLight.indirectDiffuse*=ambient;reflectedLight.indirectSpecular*=ambient;`);
+        shader.fragmentShader=shader.fragmentShader.replace('#include <alphamap_fragment>',THREE.ShaderChunk.alphamap_fragment.replace('.g;', '.r;'));
+        shader.fragmentShader=shader.fragmentShader.replace('#include <normal_fragment_maps>',THREE.ShaderChunk.normal_fragment_maps.replace('mapN.xy *= normalScale;','mapN.xy *= normalScale * surfaceDetail;'));
       };
-      material.customProgramCacheKey = () => 'dust2-lit-atlas-' + materialIndex;
-      return material;
-    });
-    const map = new THREE.Group(); map.name = 'Dust II';
-    const chunks = new Map();
-    for (const group of meta.groups) {
-      if (!chunks.has(group.chunk)) chunks.set(group.chunk, []);
-      chunks.get(group.chunk).push(group);
-    }
-    for (const [name, groups] of chunks) {
-      const first = groups[0].start, last = groups[groups.length - 1], part = new THREE.BufferGeometry();
-      for (const [name, attribute] of Object.entries(geometry.attributes)) part.setAttribute(name, attribute);
-      const index = geometry.index.array.subarray(first, last.start + last.count); part.setIndex(new THREE.BufferAttribute(index, 1));
-      for (const group of groups) part.addGroup(group.start - first, group.count, group.materialIndex);
-      const box = new THREE.Box3(), point = new THREE.Vector3();
-      for (const vertex of index) box.expandByPoint(point.fromBufferAttribute(geometry.attributes.position, vertex));
-      part.boundingBox = box; part.boundingSphere = box.getBoundingSphere(new THREE.Sphere());
-      const mesh = new THREE.Mesh(part, materials); mesh.name = 'Dust II region ' + name;
-      mesh.castShadow = mesh.receiveShadow = true; map.add(mesh);
-    }
+      material.customProgramCacheKey=()=> 'dust2-source-lit-v2-'+!!material.userData.sourceArrays;
+    };
+    const sourceSurfaces=await SourceMaterials.create({THREE,geometry,manifest:sourceManifest,buffer:sourceBuffer,opacity,lighting:sourceLit,registerTexture,detail:materialMode==='detail',isWebGL2:renderer.capabilities.isWebGL2,compact:settings.gfx.texture!=='full',progress:(done,total)=>mapProgress(.97,'载入原版轻量材质 '+done+' / '+total)});
+    loadedSourceDetails=materialMode==='detail';loadedTexturePrecision=settings.gfx.texture;
+    const materials=sourceSurfaces.materials,renderGeometry=sourceSurfaces.geometry;
+    const map = RenderOptimizations.mapMeshes(THREE, renderGeometry, materials);
     scene.add(map);
     for (const [name, site] of Object.entries(Sim.MAP.sites)) {
       const texture = canvasTex(128, (ctx, size) => {
@@ -999,12 +977,19 @@ $('tourExit').onclick = () => { mapPreview = null; $('menu').hidden = false; $('
     const desert = new THREE.Mesh(new THREE.PlaneGeometry(450, 450), new THREE.MeshLambertMaterial({ color: 0xbfa16c }));
     desert.rotation.x = -Math.PI / 2; desert.position.y = -8.1; desert.receiveShadow = true; scene.add(desert);
     await GameAssets.load((done, total) => { $('mapLoad').textContent = `载入人物、武器与音效 ${done} / ${total}`; });
+    applyTextureFiltering();
     const device = GameAssets.gun('c4', envLit); device.rotation.x = -Math.PI / 2; device.updateMatrixWorld(true);
     const deviceBox = new THREE.Box3().setFromObject(device); device.position.y = -deviceBox.min.y;
     for (const child of [...bombMesh.children]) if (child !== bombMesh.userData.led) bombMesh.remove(child);
     bombMesh.add(device);
-    mapReady = true; $('start').disabled = false; $('start').textContent = '进入沙二'; $('tour').disabled = false;
-    mapProgress(1, `沙二原地图结构 · 地图资源 ${(meta.files.reduce((n, f) => n + f.bytes, 0) / 1048576).toFixed(1)} MiB`);
+    staticSunShadow = new RenderOptimizations.StaticSunShadow(THREE, renderer, scene, sun, map);
+    renderProfiler?.setMap(map, renderGeometry, materials, staticSunShadow, scene, cam, sun);
+    mapProgress(.99, '正在准备地图与人物材质…'); await nextFrame();
+    map.userData.restoreVisibility?.();
+    GameAssets.precompile(renderer, scene, cam, vScene, vCam, envLit);
+    staticSunShadow.prepare(cam);
+    sun.shadow.needsUpdate = true; mapReady = true; $('start').disabled = false; $('start').textContent = '进入沙二'; $('tour').disabled = false;
+    mapProgress(1, `沙二原地图结构 · 原版轻量材质已载入`);
     $('mapProg').classList.add('done');
   }).catch(error => {
     console.error('Dust II load failed', error);
@@ -1064,6 +1049,7 @@ function onMsg(m) {
   else if (m.t === 'err') { errShown = true; showMenuErr(m.msg); if (ws) ws.close(); }
 }
 function onSnap(m) {
+  const profileStart=renderProfiler?.running?performance.now():0;
   const b = m.b, map = new Map();
   for (const a of b.e) { map.set(a[0], a); names.set(a[0], a[17]); }
   const sample = b.T - cnow();
@@ -1074,10 +1060,11 @@ function onSnap(m) {
   reconcile(m.me, map.get(myId));
   for (const e of m.ev) handleEvent(e);
   syncItems();
+  if(profileStart)renderProfiler.timing('snapshot',performance.now()-profileStart);
 }
 function lockFor(k, btn) {
   const B = bInfo();
-  return Sim.lockState(P, k, btn, latest && latest.ph === 'freeze', B[0] === 3, { x: B[1], z: B[3] }, !!B[5] && B[5] !== myId);
+  return Sim.lockState(P, k, btn, latest && latest.ph === 'freeze', B[0] === 3, { x: B[1], y: B[2], z: B[3] }, !!B[5] && B[5] !== myId);
 }
 function syncWeapons(m) {
   const ws_ = { 1: null, 2: null, 3: null, 5: null };
@@ -1126,7 +1113,9 @@ function localStep(dt) {
     const lock = lockFor(k, btn);
     const w = P.weapons[P.slot];
     if (lock === 2 && btn && w && w.def.c4) P.plantT += dt; else P.plantT = 0;
+    const wasGrounded = P.onGround, fallSpeed = P.vel.y;
     Sim.moveHuman(P, dt, k, lock);
+    if (!wasGrounded && P.onGround && fallSpeed < -2) sfx.land(null);
     predictWeapon(c, lock);
     const sp = Math.hypot(P.vel.x, P.vel.z);
     if (P.onGround && sp > 3.3 && !(k & K.WALK)) { P.stepT -= dt; if (P.stepT <= 0) { P.stepT = .38; sfx.step(null, .16); } }
@@ -1148,6 +1137,7 @@ function predictWeapon(c, lock) {
   const [px, py] = Sim.recoilAt(d, P.recoilIdx);
   P.recoilIdx = Math.min(P.recoilIdx + 1, d.pattern.length - 2);
   sfx.shot(d.snd, null);
+  if (d.scope) { sampleSound('weapons_awp_awp_boltback.mp3', null, .4, .45, 'weapon'); sampleSound('weapons_awp_awp_boltforward.mp3', null, .4, .8, 'weapon'); }
   GameAssets.playView(vm, 'shoot', 60 / d.rpm);
   vmState.kick += d.scope ? .09 : d.slot === 2 ? .05 : .028;
   if (vm) { vm.userData.flash.visible = d.snd !== 'usp'; vm.userData.flash.material.rotation = Math.random() * 6; vmState.flashT = .045; }
@@ -1167,10 +1157,13 @@ function localReload() {
 }
 function onWeaponView(id) {
   cancelReloadSounds();
-  if (vm) { vScene.remove(vm); if (vm.userData.official) GameAssets.dispose(vm); vm = null; }
-  vmId = id; if (!id) return;
-  vm = buildViewModel(id, P.team); vScene.add(vm);
-  const d = W[id]; P.drawDur = d.melee ? .3 : d.scope ? 1.1 : d.slot === 2 ? .45 : .8; P.drawEnd = lt + P.drawDur; P.reloadEnd = 0; GameAssets.playView(vm, 'draw', P.drawDur);
+  if (!vm || id !== vmId) {
+    if (vm) { vScene.remove(vm); if (vm.userData.official) GameAssets.dispose(vm); vm = null; }
+    vmId = id; if (!id) return;
+    vm = buildViewModel(id, P.team); vScene.add(vm);
+  }
+  if (!id) return;
+  const d = W[id]; P.drawDur = d.melee ? .3 : d.scope ? 1.1 : d.slot === 2 ? .45 : .8; P.drawEnd = lt + P.drawDur; P.reloadEnd = 0; GameAssets.playView(vm, 'draw'); sfx.draw(id);
 }
 function localSlot(s) {
   if (!P.alive || !P.weapons[s] || s === P.slot) return;
@@ -1183,8 +1176,8 @@ function applyZoom() {
 }
 function onRightClick() {
   if (!P.alive) return; const w = P.weapons[P.slot]; if (!w) return;
-  if (w.def.scope && !P.reloadEnd && lt >= P.drawEnd) { zoomLevel = (zoomLevel + 1) % 3; P.scoped = zoomLevel; P.zoomHold = cnow() + .6; applyZoom(); }
-  else if (w.def.melee && lt >= P.nextFire && latest && latest.ph !== 'freeze' && latest.ph !== 'over') { P.nextFire = lt + 1; vmState.swing = 1; sfx.knife(null); GameAssets.playView(vm, 'heavy', 1); }
+  if (w.def.scope && !P.reloadEnd && lt >= P.drawEnd) { sfx.scope(); zoomLevel = (zoomLevel + 1) % 3; P.scoped = zoomLevel; P.zoomHold = cnow() + .6; applyZoom(); }
+  else if (w.def.melee && lt >= P.nextFire && latest && latest.ph !== 'freeze' && latest.ph !== 'over') { P.nextFire = lt + 1; vmState.swing = 1; sampleSound('weapons_knife_knife_swish_heavy_01.mp3', null, .7); GameAssets.playView(vm, 'heavy', 1); }
   sendAction('alt');
 }
 
@@ -1226,15 +1219,21 @@ function syncRemotes(dt) {
       g.rotation.x = 0; g.rotation.z = 0; m.phase += Math.min(sp, 7) * dt * 2.2;
       if (m.official) { g.scale.y = 1; setModelGun(m, s.wid || 'knife'); GameAssets.updatePlayer(m, s, sp, dt); }
       else { const sw = Math.sin(m.phase) * .6 * Math.min(1, sp / 4); m.hipL.rotation.x = sw; m.hipR.rotation.x = -sw; g.scale.y = 1 - .28 * s.crouch; m.upper.rotation.x = s.pitch; setModelGun(m, s.wid || 'knife'); }
+      const planting = !!(s.arr[12] & 4);
+      if (planting && cnow() >= (r.nextPlantSound || 0) && Math.hypot(s.x-cam.position.x,s.z-cam.position.z)<22) { sampleSound('weapons_c4_key_press1.mp3',{x:s.x,z:s.z},.45,0,'plant-'+id); r.nextPlantSound = cnow()+.6; }
+      if (!planting) { stopSoundGroup('plant-'+id); r.nextPlantSound = 0; }
+      const reloading = !!(s.arr[12] & 8);
+      if (reloading && !r.reloading && Math.hypot(s.x-cam.position.x,s.z-cam.position.z)<22) sfx.reload(s.wid,{x:s.x,z:s.z},'reload-'+id);
+      if (!reloading && r.reloading) stopSoundGroup('reload-'+id); r.reloading = reloading;
       if (m.tag) m.tag.visible = true;
       if (sp > 3.3 && sp < 9) { r.stepT -= dt; if (r.stepT <= 0) { r.stepT = .36; if (Math.hypot(s.x - cam.position.x, s.z - cam.position.z) < 30) sfx.step({ x: s.x, z: s.z }, s.team === P.team ? .12 : .3); } }
     } else {
-      r.deadT += dt; const k = Math.min(1, r.deadT / .45);
+      stopSoundGroup('reload-'+id); stopSoundGroup('plant-'+id); r.reloading = false; r.deadT += dt; const k = Math.min(1, r.deadT / .45);
       if (m.official) { g.rotation.x = g.rotation.z = 0; GameAssets.updatePlayer(m, s, 0, dt); }
       else { g.rotation.x = k * k * Math.PI / 2 * .95; g.rotation.z = r.fall * k * .2; } g.scale.y = 1; if (m.tag) m.tag.visible = false;
     }
   }
-  for (const [id, r] of remotes) { if (!r.seen) { scene.remove(r.m.g); if (r.m.official) GameAssets.dispose(r.m.g); remotes.delete(id); } else r.seen = false; }
+  for (const [id, r] of remotes) { if (!r.seen) { scene.remove(r.m.g); stopSoundGroup('reload-'+id); stopSoundGroup('plant-'+id); if (r.m.official) GameAssets.dispose(r.m.g); remotes.delete(id); } else r.seen = false; }
 }
 function syncItems() {
   const live = new Set();
@@ -1246,7 +1245,7 @@ function syncItems() {
   for (const [id, m] of itemMeshes) if (!live.has(id)) { scene.remove(m); if (m.userData.assetModel) GameAssets.dispose(m); itemMeshes.delete(id); }
 }
 function clearWorldState() {
-  cancelReloadSounds();
+  cancelReloadSounds(); audioDirector.reset(); announcerUntil = 0; for (const group of [...soundGroups.keys()]) stopSoundGroup(group);
   for (const r of remotes.values()) { scene.remove(r.m.g); if (r.m.official) GameAssets.dispose(r.m.g); } remotes.clear();
   for (const m of itemMeshes.values()) { scene.remove(m); if (m.userData.assetModel) GameAssets.dispose(m); } itemMeshes.clear();
   bombMesh.visible = false; clearFx(); snaps = []; latest = null; me = null; timeOffset = null; pending.length = 0; outbox = [];
@@ -1269,7 +1268,8 @@ function handleEvent(e) {
           if (e.snd !== 'usp') worldFlash(mz); tracer(mz, e.p);
         }
       }
-      if (e.k === 1 && e.snd !== 'knife') { decal(e.p, e.ax, e.sg); burst(e.p, 5, 0xcdb48a, 1.6, .12, .5, 4); }
+      if (e.snd === 'knife' && e.k > 0) sampleSound('weapons_knife_knife_hit_light_01.mp3', mine ? null : {x:e.p[0],z:e.p[2]}, .6);
+      if (e.k === 1 && e.snd !== 'knife') { if (Math.hypot(e.p[0]-cam.position.x,e.p[2]-cam.position.z)<22) sampleSound('mud_impact_bullet'+(1+Math.floor(Math.random()*3))+'.mp3',{x:e.p[0],z:e.p[2]},.3); decal(e.p, e.ax, e.sg); burst(e.p, 5, 0xcdb48a, 1.6, .12, .5, 4); }
       else if (e.k >= 2) burst(e.p, e.k === 3 ? 10 : 6, 0x8a1010, 2.2, .09, .45);
       break;
     }
@@ -1280,7 +1280,8 @@ function handleEvent(e) {
     case 'kill': killFeed(e); if (e.v === myId) { spec.id = 0; spec.t = 0; zoomLevel = 0; applyZoom(); closeBuy(); } break;
     case 'cash': if (e.id === myId) moneyPop(e.n); break;
     case 'bomb':
-      if (e.k === 'planted') { banner('炸弹已安放', `${e.site} 包点 · 40 秒后爆炸`, 3); say('Bomb has been planted'); }
+      if (e.k === 'defused') { sampleSound('weapons_c4_c4_disarmfinish.mp3', {x:bInfo()[1],z:bInfo()[3]}, .6); say('Bomb has been defused'); }
+      else if (e.k === 'planted') { sampleSound('weapons_c4_c4_plant.mp3', {x:bInfo()[1],z:bInfo()[3]}, .6); banner('炸弹已安放', `${e.site} 包点 · 40 秒后爆炸`, 3); say('Bomb has been planted'); }
       else if (e.k === 'dropped' && P.team === 'T') banner('炸弹已掉落', '在雷达上找到它', 2);
       else if (e.k === 'picked' && e.id === myId) banner('你捡起了炸弹', '按 5 切出 C4，在包点按住左键安放', 3);
       else if (e.k === 'exploded') {
@@ -1294,8 +1295,8 @@ function handleEvent(e) {
         banner(e.n === 1 ? '手枪局' : `第 ${e.n} 回合`, '冻结时间 · 按 B 购买装备', 2.5);
         if (e.carrier === myId) setTimeout(() => banner('你携带着炸弹', '按 5 切出 C4，在包点按住左键安放', 3.5), 2600);
         if (!pointerCaptured() && !touchControlsActive && inGame) $('pause').hidden = false;
-      } else if (e.k === 'live') { banner('', '', 0); if (Math.random() < .5) say(pick(['Go go go', 'Lets move out', 'Stick together team'])); }
-      else if (e.k === 'end') { banner(`${TEAM_CN[e.win]} 获胜`, WHY[e.reason], 5, e.win); say(e.win === 'CT' ? 'Counter-Terrorists win' : 'Terrorists win'); }
+      } else if (e.k === 'live') { banner('', '', 0); }
+      else if (e.k === 'end') { banner(`${TEAM_CN[e.win]} 获胜`, WHY[e.reason], 5, e.win); say(e.win === 'CT' ? 'Counter-Terrorists win' : 'Terrorists win'); audioDirector.endRound(e.win === P.team); }
       break;
     case 'over': showOver(e.win); break;
   }
@@ -1416,8 +1417,12 @@ radarImage.onload = () => {
 };
 radarImage.src = '/maps/dust2-radar.webp';
 const rc = $('radar'), rg = rc.getContext('2d');
+let radarCssWidth=190;
+// Read layout on resize notifications, outside the per-frame HUD write/draw sequence.
+const radarResizeObserver=typeof ResizeObserver==='function'?new ResizeObserver(entries=>{const width=entries[0]?.contentRect.width;if(width>0)radarCssWidth=width;}):null;
+if(radarResizeObserver)radarResizeObserver.observe(rc);else addEventListener('resize',()=>{radarCssWidth=rc.clientWidth||radarCssWidth;});
 function drawRadar(v) {
-  const W_ = rc.clientWidth || 190, dpr = Math.min(2, devicePixelRatio || 1);
+  const W_ = radarCssWidth, dpr = Math.min(2, devicePixelRatio || 1);
   if (rc.width !== Math.round(W_ * dpr)) rc.width = rc.height = Math.round(W_ * dpr);
   const S = rc.width, zoom = S / 190 * 1.15;
   rg.setTransform(1, 0, 0, 1, 0, 0); rg.clearRect(0, 0, S, S);
@@ -1638,12 +1643,13 @@ function updateViewModel(dt) {
     if (i >= 0 && j >= 0 && i < f.w && j < f.h) { const t = clamp((f.roof[j * f.w + i] - eye.y + .2) / 1.4, 0, 1); sky = 1 - t * t * (3 - 2 * t) * (1 - INDOOR_SKY); }
   }
   const sunlit = Sim.World.raycast([eye.x, eye.y, eye.z], [SUN_DIR.x, SUN_DIR.y, SUN_DIR.z], 200) ? 0 : 1;
+  if (ENV.volume) { const light = MapLighting.sample(ENV.volume, eye.toArray()); sky = .35 + .65 * Math.sqrt(light[0]) + .2 * light[1]; }
   vLight.sun += (sunlit - vLight.sun) * Math.min(1, dt * 8); vLight.sky += (sky - vLight.sky) * Math.min(1, dt * 4);
   vSun.intensity = SUN_POWER * vLight.sun; vHemi.intensity = SKY_POWER * vLight.sky;
   vInv.copy(cam.quaternion).invert(); vSun.position.copy(SUN_DIR).applyQuaternion(vInv); vHemi.position.copy(UP).applyQuaternion(vInv);
   if (vm.userData.official) GameAssets.updateView(vm, dt);
   const native = vm.userData.official, slot = vm.userData.slot, w = P.weapons[P.slot];
-  const base = native ? [0, -.015, 0] : slot === 2 ? [.2, -.21, -.52] : slot === 3 ? [.24, -.24, -.45] : slot === 5 ? [.14, -.26, -.5] : w && w.def.scope ? [.26, -.27, -.6] : [.26, -.25, -.56];
+  const base = native ? viewPose().offset : slot === 2 ? [.2, -.21, -.52] : slot === 3 ? [.24, -.24, -.45] : slot === 5 ? [.14, -.26, -.5] : w && w.def.scope ? [.26, -.27, -.6] : [.26, -.25, -.56];
   const sp = Math.hypot(P.vel.x, P.vel.z);
   if (P.onGround) vmState.bob += dt * sp * 1.6;
   const bobA = Math.min(1, sp / 5) * .012;
@@ -1665,7 +1671,7 @@ function updateBombAndItems(dt) {
   if (bombMesh.visible) { bombMesh.position.set(B[1], B[2], B[3]); bombMesh.rotation.y = B[9]; }
   if (bs === 'planted') {
     const left = B[4] - sinceSnap(), gap = Math.max(.12, left / 40);
-    if (cnow() - lastBeep > gap && left > 0) { lastBeep = cnow(); sfx.beep({ x: B[1], z: B[3] }); }
+    if (cnow() - lastBeep > gap && left > 0) { lastBeep = cnow(); sfx.beep({ x: B[1], z: B[3] }, left <= 10); }
     bombMesh.userData.led.visible = cnow() - lastBeep < .1;
   } else bombMesh.userData.led.visible = bs === 'dropped' && cnow() % 1 < .5;
   for (const m of itemMeshes.values()) { const t = m.userData.to; if (t) m.position.lerp(new THREE.Vector3(t[0], t[1], t[2]), Math.min(1, dt * 15)); }
@@ -1675,6 +1681,7 @@ function updateBombAndItems(dt) {
 function syncMenu() {
   document.querySelectorAll('.seg').forEach(seg => seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', String(settings[seg.dataset.key]) === b.dataset.v)));
   $('sens').value = settings.sens; $('sensV').textContent = (+settings.sens).toFixed(1);
+  $('musicVol').value = settings.musicVol; $('musicVolV').textContent = Math.round(settings.musicVol * 100);
   $('vol').value = settings.vol; $('volV').textContent = Math.round(settings.vol * 100);
   $('nick').value = settings.name; $('roomIn').value = settings.room;
   document.documentElement.style.setProperty('--accent', settings.team === 'T' ? 'var(--t)' : 'var(--ct)');
@@ -1684,6 +1691,7 @@ document.querySelectorAll('.seg').forEach(seg => seg.addEventListener('click', e
   const k = seg.dataset.key; settings[k] = k === 'target' ? +b.dataset.v : b.dataset.v; saveSettings(); syncMenu();
 }));
 $('sens').addEventListener('input', e => { settings.sens = +e.target.value; saveSettings(); $('sensV').textContent = settings.sens.toFixed(1); });
+$('musicVol').addEventListener('input', e => { settings.musicVol = +e.target.value; stopSoundGroup('music'); saveSettings(); $('musicVolV').textContent = Math.round(settings.musicVol * 100); });
 $('vol').addEventListener('input', e => { settings.vol = +e.target.value; if (master) master.gain.value = settings.vol; saveSettings(); $('volV').textContent = Math.round(settings.vol * 100); });
 $('nick').addEventListener('input', e => { settings.name = e.target.value.slice(0, 16); saveSettings(); });
 $('roomIn').addEventListener('input', e => { settings.room = e.target.value.slice(0, 16); saveSettings(); });
@@ -1737,21 +1745,44 @@ function showOver(win) {
 if (matchMedia('(pointer: coarse)').matches && !matchMedia('(pointer: fine)').matches) $('touchNote').hidden = false;
 
 // ---------- loop ----------
-let last = performance.now(), menuT = 0;
+let last = performance.now(), lastRender = last, menuT = 0, renderedFrames = 0;
+const frameClock = new GraphicsSettings.FrameClock();
+const renderProfiler = RenderProfiler(renderer, Object.entries(tourPoints), view => { mapPreview=view; $('menu').hidden=true; $('mapTour').hidden=false; });
 function frame(nowMs) {
   requestAnimationFrame(frame);
-  const raw = Math.min(.25, (nowMs - last) / 1000), dt = Math.min(.1, raw); last = nowMs;
+  const raw = Math.min(.25, (nowMs - last) / 1000); last = nowMs;
+  const inputStart=renderProfiler?.running?performance.now():0;
+  // Input prediction and outgoing commands keep the display callback cadence,
+  // even when rendering is capped to save power.
+  if (inGame && latest) for (let left = raw; left > 1e-4;) { const st = Math.min(.05, left); localStep(st); left -= st; }
+  if (!frameClock.shouldRender(nowMs, settings.gfx.limit)) return;
+  const dt = Math.min(.1, (nowMs-lastRender)/1000); lastRender=nowMs;
+  const inputMs=inputStart?performance.now()-inputStart:0;
+  renderProfiler?.before(nowMs);
+  if(inputStart)renderProfiler.timing('prediction',inputMs);
   if (!inGame || !latest) {
     if (mapPreview) { cam.position.fromArray(mapPreview[0]); cam.lookAt(...mapPreview[1]); }
     else { menuT += dt * .035; cam.position.set(21 + Math.sin(menuT) * 1.5, 4.6, -58 + Math.cos(menuT) * 1.5); cam.lookAt(32, 3.4, -66); }
   } else {
-    // low frame rates are split into several commands so game time keeps pace with real time
-    for (let left = raw; left > 1e-4;) { const st = Math.min(.05, left); localStep(st); left -= st; }
     sample = sampleAt(serverNow() - INTERP);
-    syncRemotes(dt); updateBombAndItems(dt); updateFx(dt); updateCamera(dt); updateViewModel(dt); updateHud();
+    audioDirector.update({round:latest.rd,phase:latest.ph,freeze:latest.ft-sinceSnap(),roundLeft:latest.rt-sinceSnap(),bombState:bombState(),bombLeft:bInfo()[4]-sinceSnap(),defuser:bInfo()[5],bombPosition:{x:bInfo()[1],z:bInfo()[3]},planting:P.plantT,alive:P.alive});
+    const actorStart=renderProfiler?.running?performance.now():0;
+    syncRemotes(dt);
+    if(actorStart)renderProfiler.timing('actors',performance.now()-actorStart);
+    updateBombAndItems(dt); updateFx(dt); updateCamera(dt);
+    const viewStart=renderProfiler?.running?performance.now():0;
+    updateViewModel(dt);
+    if(viewStart)renderProfiler.timing('viewmodel',performance.now()-viewStart);
+    updateHud();
   }
+  if (window.SUN) window.SUN.shadow.autoUpdate = inGame || !mapReady || !!renderProfiler?.running;
+  const renderStart=renderProfiler?.running?performance.now():0;
+  staticSunShadow?.prepare(cam);
   renderer.clear(); renderer.render(scene, cam);
   if (inGame && vm && vm.visible) { renderer.clearDepth(); renderer.render(vScene, vCam); }
+  if(renderStart)renderProfiler.timing('render',performance.now()-renderStart);
+  renderedFrames++;
+  renderProfiler?.after();
 }
 const TOUCH_API = {
   look(dx, dy) { if (!P.alive) return; P.yaw -= dx; P.pitch = clamp(P.pitch - dy, -89 * DEG, 89 * DEG); },
@@ -1766,17 +1797,20 @@ const TOUCH_API = {
 // ---------- graphics settings & touch controls ----------
 (function () {
   const G = settings.gfx;
-  const PRESET_KEYS = ['res', 'shadow', 'aa', 'fx'];
+  const PRESET_KEYS = Object.keys(GFX_PRESETS.high);
   const touchOn = () => G.touch === 'on' || (G.touch === 'auto' && IS_TOUCH);
   // effects: fewer particles on the low setting
   const _burst = burst;
   burst = function (pos, n, ...rest) { return _burst(pos, G.fx === '0' ? Math.max(1, Math.ceil(n * .35)) : n, ...rest); };
+  let appliedShadow = null;
   function applyShadows() {
+    if (appliedShadow === G.shadow) return; appliedShadow = G.shadow;
     const lv = +G.shadow, sun = window.SUN;
     renderer.shadowMap.enabled = lv > 0;
     if (sun) {
-      sun.castShadow = lv > 0;
-      const sz = lv === 1 ? 1024 : 2048;
+      sun.castShadow = lv > 0; sun.shadow.needsUpdate = true;
+      const sz = Math.min(renderer.capabilities.maxTextureSize, GraphicsSettings.shadowSize(G.shadow));
+      Object.assign(sun.shadow, MapSurfaces.shadowBias(148, sz, sun.shadow.camera.far - sun.shadow.camera.near));
       if (lv > 0 && sun.shadow.mapSize.x !== sz) { sun.shadow.mapSize.set(sz, sz); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } }
     }
     const seen = new Set();
@@ -1785,7 +1819,8 @@ const TOUCH_API = {
   }
   function applyGfx() {
     renderer.setPixelRatio(gfxPixelRatio()); renderer.setSize(innerWidth, innerHeight);
-    applyShadows();
+    applyShadows(); applyTextureFiltering(); surfaceDetail.value=G.detail==='0'?0:1;
+    if(vCam.fov!==viewPose().fov){vCam.fov=viewPose().fov;vCam.updateProjectionMatrix();}
     $('fps').hidden = G.fps !== '1';
     const t = touchOn();
     document.body.classList.toggle('touch', t);
@@ -1799,17 +1834,17 @@ const TOUCH_API = {
     G.preset = match || 'custom';
     document.querySelectorAll('.gseg').forEach(seg => seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', String(G[seg.dataset.g]) === b.dataset.v)));
     $('tsens').value = G.tsens; $('tsensV').textContent = (+G.tsens).toFixed(1);
-    $('gfxNote').textContent = G.aa !== (renderer.getContextAttributes().antialias ? '1' : '0') ? '抗锯齿的改动会在刷新页面后生效。' : '';
+    $('gfxNote').textContent = [!renderer.capabilities.isWebGL2&&G.texture==='compact'?'当前浏览器不支持省显存纹理模式，正在使用兼容模式。':'',mapReady&&G.texture!==loadedTexturePrecision?'贴图颜色精度会在刷新页面后生效。':'',G.aa !== (renderer.getContextAttributes().antialias ? '1' : '0') ? '抗锯齿的改动会在刷新页面后生效。' : '',mapReady && G.detail==='1' && !loadedSourceDetails ? '当前仅载入颜色贴图，刷新后载入法线与表面细节。' : ''].filter(Boolean).join(' ');
   }
   document.querySelectorAll('.gseg').forEach(seg => seg.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     const k = seg.dataset.g;
     if (k === 'preset') Object.assign(G, GFX_PRESETS[b.dataset.v]); else G[k] = b.dataset.v;
-    saveSettings(); syncGfxUi(); applyGfx();
+    syncGfxUi(); saveSettings(); applyGfx();
   }));
   $('tsens').addEventListener('input', e => { G.tsens = +e.target.value; saveSettings(); syncGfxUi(); });
   $('buy').addEventListener('click', e => { if (e.target === $('buy')) closeBuy(); });
-  const openGfx = () => { syncGfxUi(); $('gfx').hidden = false; };
+  const openGfx = () => { syncGfxUi(); $('gfx').hidden = false; $('gfx').scrollTop = 0; };
   $('gfxOpen').addEventListener('click', openGfx);
   $('gfxOpen2').addEventListener('click', openGfx);
   $('gfxClose').addEventListener('click', () => { $('gfx').hidden = true; });
@@ -1903,10 +1938,10 @@ const TOUCH_API = {
     const pc = document.querySelector('#pause .card p'); if (pc && pc.textContent.includes('重新锁定鼠标')) pc.textContent = pc.textContent.replace('点击“回到游戏”重新锁定鼠标。', '点“回到游戏”回到对局。');
   }
   // per-frame: visibility, button states, fps
-  let frames = 0, fpsT = performance.now();
+  let previousFrames = renderedFrames, fpsT = performance.now();
   function tick(now) {
     requestAnimationFrame(tick);
-    frames++; if (now - fpsT > 500) { if (G.fps === '1') $('fps').textContent = Math.round(frames * 1000 / (now - fpsT)) + ' FPS'; frames = 0; fpsT = now; }
+    if (now - fpsT > 500) { if (G.fps === '1') $('fps').textContent = Math.round((renderedFrames-previousFrames) * 1000 / (now - fpsT)) + ' FPS'; previousFrames=renderedFrames; fpsT=now; }
     const show = touchOn() && !$('hud').hidden;
     if ($('touch').hidden === show) $('touch').hidden = !show;
     $('rotate').hidden = !(show && innerHeight > innerWidth);

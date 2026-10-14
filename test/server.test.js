@@ -62,7 +62,7 @@ test('HTTP serves the client, shared simulation and health endpoint', async t =>
   assert.deepEqual(await rooms(s), []);
 });
 
-test('map transfers compressed geometry and never serves the source texture library', async t => {
+test('map serves compressed geometry and versioned lightweight textures without exposing the source library', async t => {
   const s = await start(t);
   const info = await (await fetch(s.url + '/maps/dust2.json')).json();
   const file = info.files.find(f => f.name === 'dust2.mesh.gz');
@@ -71,6 +71,15 @@ test('map transfers compressed geometry and never serves the source texture libr
   assert.equal(Number(res.headers.get('content-length')), file.bytes);
   assert.equal(Buffer.from(await res.arrayBuffer()).subarray(0, 4).toString(), 'D2L1');
   assert.equal((await fetch(s.url + '/assets/map-cs2/dust2-web.gltf')).status, 404);
+  const texture=info.files.find(f=>f.kind==='color');
+  const versioned=await fetch(s.url+'/maps/'+texture.name+'?v='+texture.sha256.slice(0,12));
+  assert.equal(versioned.status,200);assert.match(versioned.headers.get('cache-control'),/immutable/);
+  assert.equal(Number(versioned.headers.get('content-length')),texture.bytes);
+  const cached=await fetch(s.url+'/maps/'+texture.name+'?v='+texture.sha256.slice(0,12),{headers:{'If-None-Match':versioned.headers.get('etag')}});
+  assert.equal(cached.status,304);assert.match(cached.headers.get('cache-control'),/immutable/);
+  const sourceManifest=await fetch(s.url+'/maps/dust2-source-materials.json');
+  assert.equal(sourceManifest.headers.get('content-type'),'application/json; charset=utf-8');assert.equal(sourceManifest.headers.get('content-encoding'),'gzip');
+  assert.ok((await sourceManifest.json()).materials.length>600);
   for (const route of ['/dust2-world.js', '/dust2-mesh.js', '/dust2-data.js', '/bvh.js']) assert.equal((await fetch(s.url + route)).status, 200);
   const game = await (await fetch(s.url + '/game/assets.json')).json();
   const model = game.files.find(f => f.name === 'ak47.glb');

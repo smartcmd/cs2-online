@@ -1,0 +1,25 @@
+<!doctype html><meta charset="utf-8"><title>Source texture array regression</title><style>body{font:13px monospace;background:#16212b;color:#eef}canvas{max-width:100%}</style><pre id="result">Comparing source UV, normal orientation, wrapping and alpha edges…</pre>
+<script src="/three.min.js"></script><script src="/source-material-arrays.js"></script>
+<script>
+(async()=>{
+ const T=THREE,r=new T.WebGLRenderer({antialias:false});r.setSize(256,256);r.outputEncoding=T.sRGBEncoding;document.body.appendChild(r.domElement);if(!r.capabilities.isWebGL2)throw Error('WebGL 2 required');
+ const scene=new T.Scene(),cam=new T.PerspectiveCamera(55,1,.1,100);cam.position.set(0,0,4);scene.add(new T.HemisphereLight(0xffffff,0x555555,.8));const light=new T.DirectionalLight(0xffffff,1.5);light.position.set(2,3,4);scene.add(light);
+ const target=new T.WebGLRenderTarget(256,256),a=new Uint8Array(256*256*4),b=new Uint8Array(a.length),checks=[];
+ function tex(w,h,kind){const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');if(kind==='color'){g.fillStyle='#b64c34';g.fillRect(0,0,w,h);g.fillStyle='#3976b2';g.fillRect(w*.5,0,w*.5,h*.5);g.fillStyle='#54a24b';g.fillRect(0,h*.5,w*.5,h*.5);g.fillStyle='#dabc54';g.fillRect(w*.5,h*.5,w*.5,h*.5);}else{g.fillStyle=kind==='normal'?'rgb(150,105,249)':'rgb(255,180,30)';g.fillRect(0,0,w,h);}const t=new T.CanvasTexture(c);t.flipY=false;t.wrapS=t.wrapT=T.RepeatWrapping;t.encoding=kind==='color'?T.sRGBEncoding:T.LinearEncoding;return t;}
+ for(const [w,h]of [[128,64],[256,128],[128,256],[512,256],[256,512],[512,512],[1024,512],[512,1024],[1024,1024]])for(const detail of [false,true])for(const compact of [false,true]){
+  const color=tex(w,h,'color'),normal=tex(256,128,'normal'),orm=tex(128,256,'orm'),geo=new T.PlaneGeometry(2,2);geo.attributes.uv.array.set([-.2,1.8,1.8,1.8,-.2,-.2,1.8,-.2]);
+  const source={color:[.8,.9,.7],roughness:.85,metalness:.4,roughnessMean:.6,metalnessMean:.05,normalScale:.7,albedo:{key:'c'},normal:{key:'n'},orm:{key:'o'}};
+  const manifest={materials:[source],textures:{c:{file:'c',width:w,height:h},n:{file:'n',width:256,height:128},o:{file:'o',width:128,height:256}}};
+  const flags={collidable:true,visible:true,mask:0,cutoff:.5,overlay:false,depthLayer:0,bias:false};geo.userData.dust2={meta:{groups:[],materials:[flags]}};
+  const alpha=new T.DataTexture(new Uint8Array([255,255,0,255]),2,2,T.RedFormat);alpha.wrapS=alpha.wrapT=T.RepeatWrapping;alpha.needsUpdate=true;
+  const finish=m=>{const prior=m.onBeforeCompile;m.onBeforeCompile=s=>{prior(s);s.uniforms.surfaceDetail={value:1};s.fragmentShader='uniform float surfaceDetail;\n'+s.fragmentShader;s.fragmentShader=s.fragmentShader.replace('#include <alphamap_fragment>',T.ShaderChunk.alphamap_fragment.replace('.g;','.r;'));};m.customProgramCacheKey=()=> 'array-test-'+!!m.userData.sourceArrays;};
+  const data={materialIds:new Uint16Array(4),uv:geo.attributes.uv.array,normal:geo.attributes.normal.array,color:new Float32Array(12).fill(1)};
+  const arrays=await SourceMaterialArrays.create({THREE:T,geometry:geo,data,manifest,load:async ref=>new T.Texture(await createImageBitmap(({c:color,n:normal,o:orm})[ref.key].image)),registerTexture(){},detail,compact,lighting:finish,alpha:()=>alpha});
+  const material=new T.MeshStandardMaterial({map:color,color:new T.Color().fromArray(source.color),roughness:detail?source.roughness:source.roughnessMean,metalness:detail?source.metalness:source.metalnessMean,normalMap:detail?normal:null,normalScale:new T.Vector2(.7,.7),roughnessMap:detail?orm:null,metalnessMap:detail?orm:null,alphaMap:alpha,alphaTest:.5,side:T.DoubleSide});finish(material);
+  const before=new T.Mesh(geo,material),after=new T.Mesh(arrays.geometry,arrays.materials[0]);scene.add(before,after);r.setRenderTarget(target);
+  let worst=0,changed=0,total=0,coverage=0;for(const angle of [-.25,0,.25]){before.rotation.y=after.rotation.y=angle;before.visible=true;after.visible=false;r.render(scene,cam);r.readRenderTargetPixels(target,0,0,256,256,a);before.visible=false;after.visible=true;r.render(scene,cam);r.readRenderTargetPixels(target,0,0,256,256,b);for(let i=0;i<a.length;i++){const d=Math.abs(a[i]-b[i]);total+=d;if(i%4===0&&(a[i]+a[i+1]+a[i+2]>0)!==(b[i]+b[i+1]+b[i+2]>0))coverage++;worst=Math.max(worst,d);if(d>(compact?12:2))changed++;}}
+  checks.push({w,h,detail,compact,maxError:worst,meanError:total/(a.length*3),coverageMismatch:coverage,changedChannels:changed});scene.remove(before,after);geo.dispose();material.dispose();for(const m of arrays.materials)m.dispose();for(const t of arrays.textures)t.dispose();color.dispose();normal.dispose();orm.dispose();alpha.dispose();
+ }
+ document.getElementById('result').textContent=JSON.stringify({pass:checks.every(c=>c.changedChannels===0&&c.meanError<1.5&&c.coverageMismatch===0),checks},null,2);
+})().catch(e=>document.getElementById('result').textContent='FAIL '+e.stack);
+</script>

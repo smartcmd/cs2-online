@@ -8,9 +8,16 @@
     "start": "node server.js",
     "test": "node --test test/*.test.js",
     "map:source": "node scripts/fetch-map.mjs",
-    "map:build": "node scripts/build-dust2.mjs",
+    "map:build": "node scripts/build-dust2.mjs && node scripts/build-lighting.cjs",
     "game:fetch": "node scripts/fetch-game-assets.mjs",
-    "game:build": "node scripts/build-game-assets.mjs && node scripts/build-famas.cjs"
+    "game:build": "node scripts/build-game-assets.mjs && node scripts/build-famas.cjs",
+    "map:lighting": "node scripts/build-lighting.cjs",
+    "map:audit": "node --max-old-space-size=4096 scripts/audit-map-surfaces.cjs",
+    "test:gpu": "node scripts/audit-map-surfaces.cjs --gpu",
+    "bots:audit": "node scripts/audit-bots.cjs",
+    "test:shadows": "node scripts/test-render-gpu.cjs",
+    "test:materials": "node scripts/test-source-material-gpu.cjs",
+    "map:size": "node scripts/report-map-transfer.cjs"
   },
   "engines": {
     "node": ">=20.9.0"
@@ -21,6 +28,7 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
+    "@gfx/zopfli": "^1.0.15",
     "meshoptimizer": "^0.20.0",
     "sharp": "^0.35.5"
   }

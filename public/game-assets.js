@@ -4,6 +4,7 @@ const THREE=root.THREE, templates=new Map(), sounds=new Map();
 let viewClips=[],playerClips=[],manifest;
 const aliases={glock:'pistol',galil:'galilar',famas:'m4a4'};
 const api={ready:false,sounds};
+const preparedMaterials=new WeakMap(),sharedMaterials=new WeakSet(),filteredClips=new WeakMap();
 api.load=async function(progress){
   const response=await fetch('/game/assets.json');if(!response.ok)throw Error('人物与武器资源清单缺失');manifest=await response.json();
   const loader=new THREE.GLTFLoader(),jobs=manifest.files.slice();let done=0,cursor=0;
@@ -21,14 +22,24 @@ function clone(id,lighting){
   const original=templates.get(id);if(!original)throw Error('模型资源缺失: '+id);
   const model=THREE.SkeletonUtils.clone(original);
   model.traverse(o=>{if(!o.isMesh)return;o.frustumCulled=false;o.castShadow=o.receiveShadow=true;
-    const prepare=m=>{m=m.clone();if(lighting)lighting(m);return m;};o.material=Array.isArray(o.material)?o.material.map(prepare):prepare(o.material);
+    const prepare=original=>{
+      let variants=preparedMaterials.get(original);if(!variants){variants=new Map();preparedMaterials.set(original,variants);}
+      if(!variants.has(lighting)){const material=original.clone();if(lighting)lighting(material);variants.set(lighting,material);sharedMaterials.add(material);}
+      return variants.get(lighting);
+    };o.material=Array.isArray(o.material)?o.material.map(prepare):prepare(o.material);
   });return model;
 }
 function clipsFor(model,clips){
-  return clips.map(source=>{const clip=source.clone();clip.tracks=clip.tracks.filter(track=>{
-    const name=THREE.PropertyBinding.parseTrackName(track.name).nodeName;
-    return name!=='weapon'&&!!model.getObjectByName(name);
-  });return clip;});
+  const names=new Set();model.traverse(node=>names.add(node.name));
+  const signature=[...names].sort().join('|');
+  return clips.map(source=>{
+    let variants=filteredClips.get(source);if(!variants){variants=new Map();filteredClips.set(source,variants);}
+    if(!variants.has(signature)){
+      const tracks=source.tracks.filter(track=>{const name=THREE.PropertyBinding.parseTrackName(track.name).nodeName;return name!=='weapon'&&names.has(name);});
+      variants.set(signature,new THREE.AnimationClip(source.name,source.duration,tracks));
+    }
+    return variants.get(signature);
+  });
 }
 function sourceWeapon(id,parent,lighting){
   const model=clone(id,lighting),normal=model.getObjectByName('normalization');
@@ -38,7 +49,23 @@ function sourceWeapon(id,parent,lighting){
   if(bone){attachment.matrix.copy(bone.matrixWorld).invert();attachment.matrix.decompose(attachment.position,attachment.quaternion,attachment.scale);}
   attachment.add(model);parent.add(attachment);return attachment;
 }
-function dispose(model){model.traverse(o=>{if(o.isSkinnedMesh)o.skeleton.dispose();if(o.isMesh)for(const m of Array.isArray(o.material)?o.material:[o.material])m.dispose();});}
+function dispose(model){model.traverse(o=>{if(o.isSkinnedMesh)o.skeleton.dispose();if(o.isMesh)for(const m of Array.isArray(o.material)?o.material:[o.material])if(!sharedMaterials.has(m))m.dispose();});}
+api.precompile=function(renderer,world,camera,view,viewCamera,lighting){
+  const worldModels=new THREE.Group(),viewModels=new THREE.Group();worldModels.visible=viewModels.visible=false;
+  try{
+    for(const id of templates.keys()){
+      if(id!=='arms')worldModels.add(clone(id,lighting));
+      if(id!=='ct'&&id!=='t')viewModels.add(clone(id));
+    }
+    world.add(worldModels);view.add(viewModels);
+    renderer.compile(world,camera);renderer.compile(view,viewCamera);
+  }finally{
+    world.remove(worldModels);view.remove(viewModels);dispose(worldModels);dispose(viewModels);
+  }
+};
+api.setTextureFiltering=function(value){
+  const seen=new Set();for(const model of templates.values())model.traverse(o=>{for(const material of o.material?(Array.isArray(o.material)?o.material:[o.material]):[])for(const key of ['map','normalMap','roughnessMap','metalnessMap','aoMap','emissiveMap']){const texture=material[key];if(texture&&!seen.has(texture)){seen.add(texture);if(texture.anisotropy!==value){texture.anisotropy=value;texture.needsUpdate=true;}}}});
+};
 api.gun=function(id,lighting){const model=clone(id,lighting);const box=new THREE.Box3().setFromObject(model);model.userData.assetModel=true;model.userData.muzzle=new THREE.Vector3((box.min.x+box.max.x)/2,(box.min.y+box.max.y)/2,box.min.z);return model;};
 api.view=function(id,flashMaterial,slot){
   const model=new THREE.Group(),source=new THREE.Group();source.rotation.y=Math.PI;model.add(source);
@@ -55,11 +82,14 @@ api.playView=function(model,name,duration){
   if(!model?.userData.official)return;
   const data=model.userData;if(!data.actions.has(name))name='idle';const action=data.actions.get(name);if(!action)return;
   if(name==='idle'&&data.action===action)return;
-  if(data.action)data.action.fadeOut(.05);
-  action.reset().setEffectiveWeight(1).fadeIn(.05);
-  action.setLoop(name==='idle'?THREE.LoopRepeat:THREE.LoopOnce,name==='idle'?Infinity:1);action.clampWhenFinished=name!=='idle';
+  const immediate=!data.action||name==='draw';
+  if(data.action){if(immediate)data.action.stop();else data.action.fadeOut(.05);}
+  action.reset().setEffectiveWeight(1);if(!immediate)action.fadeIn(.05);
+  const looping=name==='idle'&&action.getClip().duration>0;
+  action.setLoop(looping?THREE.LoopRepeat:THREE.LoopOnce,looping?Infinity:1);action.clampWhenFinished=!looping;
   action.timeScale=duration?action.getClip().duration/Math.max(.05,duration):1;
   data.action=action;action.play();
+  if(immediate)data.mixer.update(0);
 };
 api.updateView=function(model,dt){
   const d=model.userData;d.mixer.update(dt);d.source.updateMatrixWorld(true);
@@ -69,8 +99,8 @@ api.updateView=function(model,dt){
 };
 api.player=function(team,lighting){
   const g=new THREE.Group(),model=clone(team==='CT'?'ct':'t',lighting);model.rotation.y=Math.PI;g.add(model);
-  const mixer=new THREE.AnimationMixer(model);g.userData.assetModel=true;g.userData.mixer=mixer;const clips=clipsFor(model,playerClips),actions=new Map(clips.map(c=>[c.name,mixer.clipAction(c)]));
-  return {g,model,mixer,actions,official:true,gun:null,gunId:null,lighting,head:model.getObjectByName('head_0'),spine:model.getObjectByName('spine_3'),headPoint:new THREE.Vector3(),action:null,dead:false};
+  const mixer=new THREE.AnimationMixer(model);g.userData.assetModel=true;g.userData.mixer=mixer;const clips=new Map(clipsFor(model,playerClips).map(c=>[c.name,c])),actions=new Map();
+  return {g,model,mixer,actions,clips,official:true,gun:null,gunId:null,lighting,head:model.getObjectByName('head_0'),spine:model.getObjectByName('spine_3'),headPoint:new THREE.Vector3(),spinePose:new THREE.Quaternion(),hasSpinePose:false,action:null,dead:false};
 };
 api.playerGun=function(player,id){
   if(player.gunId===id)return;player.gunId=id;
@@ -79,11 +109,18 @@ api.playerGun=function(player,id){
 };
 api.updatePlayer=function(player,state,speed,dt){
   const category=state.wid==='knife'?'knife':['glock','usp','deagle'].includes(state.wid)?'pistol':'rifle';
-  const name=!state.alive?'death':(state.arr?.[12]&8)?category+'/reload':category+'/'+(state.crouch>.5?(speed>.3?'crouchMove':'crouchIdle'):speed>3?'run_n':speed>.3?'walk':'idle');
-  const action=player.actions.get(name)||player.actions.get(category+'/idle');
-  const once=!state.alive||!!(state.arr?.[12]&8);
-  if(action&&player.action!==action){if(player.action)player.action.fadeOut(.12);action.reset().setEffectiveWeight(1).fadeIn(.12).setLoop(once?THREE.LoopOnce:THREE.LoopRepeat,once?1:Infinity);action.clampWhenFinished=once;if(state.alive&&once)action.timeScale=action.getClip().duration/(root.Sim.W[state.wid]?.reload||2);else action.timeScale=1;action.play();player.action=action;}
+  const objective=!!(state.arr?.[12]&(4|64));
+  const name=!state.alive?'death':objective?category+'/crouchIdle':(state.arr?.[12]&8)?category+'/reload':category+'/'+(state.crouch>.5?(speed>.3?'crouchMove':'crouchIdle'):speed>3?'run_n':speed>.3?'walk':'idle');
+  const clip=player.clips.get(name)||player.clips.get(category+'/idle');
+  if(clip&&!player.actions.has(clip.name))player.actions.set(clip.name,player.mixer.clipAction(clip));
+  const action=clip&&player.actions.get(clip.name);
+  const once=!state.alive||(!objective&&!!(state.arr?.[12]&8))||action?.getClip().duration===0;
+  if(action&&player.action!==action){if(player.action)player.action.fadeOut(.12);action.reset().setEffectiveWeight(1).fadeIn(.12).setLoop(once?THREE.LoopOnce:THREE.LoopRepeat,once?1:Infinity);action.clampWhenFinished=once;if(state.alive&&!objective&&(state.arr?.[12]&8))action.timeScale=action.getClip().duration/(root.Sim.W[state.wid]?.reload||2);else action.timeScale=1;action.play();player.action=action;}
+  // Constant animation tracks may skip writing an unchanged quaternion. Restore
+  // the authored pose before mixing so procedural aim cannot accumulate.
+  if(player.spine&&player.hasSpinePose)player.spine.quaternion.copy(player.spinePose);
   player.mixer.update(dt);
+  if(player.spine){player.spinePose.copy(player.spine.quaternion);player.hasSpinePose=true;}
   if(state.alive){
     if(player.spine)player.spine.rotation.x+=state.pitch*.65;
     player.model.scale.y=1;player.model.position.x=player.model.position.z=0;player.g.updateMatrixWorld(true);

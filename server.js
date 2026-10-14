@@ -12,6 +12,15 @@ const TICK = 1 / 30, SNAP_EVERY = 2, MAX_ROOMS = 50, MAX_HUMANS = 10;
 
 // ---------- static files ----------
 const FILES = {
+  '/source-material-arrays.js': [path.join(__dirname, 'public/source-material-arrays.js'), 'text/javascript; charset=utf-8'],
+  '/source-materials.js': [path.join(__dirname, 'public/source-materials.js'), 'text/javascript; charset=utf-8'],
+  '/graphics-settings.js': [path.join(__dirname, 'public/graphics-settings.js'), 'text/javascript; charset=utf-8'],
+  '/material-details.js': [path.join(__dirname, 'public/material-details.js'), 'text/javascript; charset=utf-8'],
+  '/render-optimizations.js': [path.join(__dirname, 'public/render-optimizations.js'), 'text/javascript; charset=utf-8'],
+  '/render-profiler.js': [path.join(__dirname, 'public/render-profiler.js'), 'text/javascript; charset=utf-8'],
+  '/map-surfaces.js': [path.join(__dirname, 'public/map-surfaces.js'), 'text/javascript; charset=utf-8'],
+  '/lighting.js': [path.join(__dirname, 'public/lighting.js'), 'text/javascript; charset=utf-8'],
+  '/game-audio.js': [path.join(__dirname, 'public/game-audio.js'), 'text/javascript; charset=utf-8'],
   '/': [path.join(__dirname, 'public/index.html'), 'text/html; charset=utf-8'],
   '/index.html': [path.join(__dirname, 'public/index.html'), 'text/html; charset=utf-8'],
   '/sim.js': [path.join(__dirname, 'shared/sim.js'), 'text/javascript; charset=utf-8'],
@@ -41,17 +50,19 @@ const server = http.createServer((req, res) => {
   const url = (req.url || '/').split('?')[0];
   if (mapAssets.has(url) && req.method === 'GET') {
     const asset = mapAssets.get(url), file = path.join(__dirname, 'public', asset.directory, asset.name);
-    const type = url.endsWith('.webp') ? 'image/webp' : url.endsWith('.mp3') ? 'audio/mpeg' : url.endsWith('.ogg') ? 'audio/ogg' : url.endsWith('.glb') ? 'model/gltf-binary' : 'application/octet-stream';
+    const type = url.endsWith('.json') ? 'application/json; charset=utf-8' : url.endsWith('.webp') ? 'image/webp' : url.endsWith('.mp3') ? 'audio/mpeg' : url.endsWith('.ogg') ? 'audio/ogg' : url.endsWith('.glb') ? 'model/gltf-binary' : 'application/octet-stream';
     if (!fs.existsSync(file)) { res.writeHead(404); return res.end('Map asset missing; run npm run map:build'); }
     const etag = '"' + asset.sha256 + '"';
-    if (req.headers['if-none-match'] === etag) { res.writeHead(304); return res.end(); }
-    if (url.endsWith('.glb') && /\bgzip\b/.test(req.headers['accept-encoding'] || '')) {
+    const version=new URL(req.url,'http://localhost').searchParams.get('v');
+    const cacheControl=version===asset.sha256.slice(0,12)?'public, max-age=31536000, immutable':'public, max-age=0, must-revalidate';
+    if (req.headers['if-none-match'] === etag) { res.writeHead(304, {'ETag':etag,'Cache-Control':cacheControl}); return res.end(); }
+    if ((url.endsWith('.glb') || url.endsWith('.json')) && /\bgzip\b/.test(req.headers['accept-encoding'] || '')) {
       const key = file + ':' + asset.sha256;
       let body = cache.get(key); if (!body) { body = gzipSync(fs.readFileSync(file)); cache.set(key, body); }
-      res.writeHead(200, { 'Content-Type': type, 'Content-Length': body.length, 'Content-Encoding': 'gzip', 'Cache-Control': 'public, max-age=3600', 'Vary': 'Accept-Encoding', 'ETag': etag });
+      res.writeHead(200, { 'Content-Type': type, 'Content-Length': body.length, 'Content-Encoding': 'gzip', 'Cache-Control': cacheControl, 'Vary': 'Accept-Encoding', 'ETag': etag });
       res.end(body); return;
     }
-    res.writeHead(200, { 'Content-Type': type, 'Content-Length': fs.statSync(file).size, 'Cache-Control': 'public, max-age=3600', 'ETag': etag, ...(url.endsWith('.glb') ? { 'Vary': 'Accept-Encoding' } : {}), ...(url.endsWith('.gz') ? { 'Content-Encoding': 'gzip' } : {}) });
+    res.writeHead(200, { 'Content-Type': type, 'Content-Length': fs.statSync(file).size, 'Cache-Control': cacheControl, 'ETag': etag, ...((url.endsWith('.glb') || url.endsWith('.json')) ? { 'Vary': 'Accept-Encoding' } : {}), ...(url.endsWith('.gz') ? { 'Content-Encoding': 'gzip' } : {}) });
     const stream = fs.createReadStream(file); stream.on('error', () => res.destroy()); stream.pipe(res); return;
   }
   if (url === '/favicon.ico') { res.writeHead(204); return res.end(); }

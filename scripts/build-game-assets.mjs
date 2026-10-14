@@ -3,6 +3,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import sharp from 'sharp';
+import { createRequire } from 'node:module';
+const { files: audioFiles } = createRequire(import.meta.url)('../public/game-audio.js');
 const root=fileURLToPath(new URL('../',import.meta.url)),source=root+'.cache/game-source/assets/',output=root+'public/game/';
 await fs.mkdir(output,{recursive:true});
 function unpack(bytes){const length=bytes.readUInt32LE(12);return {g:JSON.parse(bytes.toString('utf8',20,20+length)),bin:bytes.subarray(28+length)};}
@@ -35,5 +37,6 @@ await convert('viewmodel/animations.glb','weapon-animations.glb',n=>/^(ak47|awp|
 const soundNames=['ak47_01','ak47_02','awp_01','m4a1_01','galil_01','glock_02','usp_01','deagle_01','ak47_clipout_01','ak47_boltpull_01','m4a1_clipout','m4a1_clipin','glock_clipout','glock_clipin','usp_clipout_01','usp_clipin_02','awp_clipout','awp_clipin','awp_boltforward','de_clipout','knife_swish_light_01','knife_hit_01','headshot_armor_e1','kevlar_01','weapons_c4_c4_beep2','weapons_c4_c4_explode_close_01','vo_announcer_cs2_classic_ctwin','vo_announcer_cs2_classic_terwin','vo_announcer_cs2_classic_bombpl','vo_announcer_cs2_classic_bombdef'];
 for(const name of soundNames)await fs.copyFile(source+'audio/cs2/'+name+'.mp3',output+name+'.mp3');
 for(let i=0;i<5;i++){const name='footstep_concrete_00'+i+'.ogg';await fs.copyFile(source+'audio/'+name,output+name);}
+for(const file of audioFiles)await fs.copyFile(source+file.source,output+file.name);
 const files=[];for(const name of await fs.readdir(output)){if(name==='assets.json')continue;const b=await fs.readFile(output+name);files.push({name,bytes:b.length,sha256:createHash('sha256').update(b).digest('hex')});}
 await fs.writeFile(output+'assets.json',JSON.stringify({source:'Valve CS2 assets; see ASSETS.md',weapons:Object.keys(weapons).concat('c4','famas'),files},null,2)+'\n');console.log('Total MiB',files.reduce((n,f)=>n+f.bytes,0)/1048576);
