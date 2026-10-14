@@ -50,12 +50,12 @@ function sourceWeapon(id,parent,lighting){
   attachment.add(model);parent.add(attachment);return attachment;
 }
 function dispose(model){model.traverse(o=>{if(o.isSkinnedMesh)o.skeleton.dispose();if(o.isMesh)for(const m of Array.isArray(o.material)?o.material:[o.material])if(!sharedMaterials.has(m))m.dispose();});}
-api.precompile=function(renderer,world,camera,view,viewCamera,lighting){
+api.precompile=function(renderer,world,camera,view,viewCamera,lighting,viewLighting){
   const worldModels=new THREE.Group(),viewModels=new THREE.Group();worldModels.visible=viewModels.visible=false;
   try{
     for(const id of templates.keys()){
       if(id!=='arms')worldModels.add(clone(id,lighting));
-      if(id!=='ct'&&id!=='t')viewModels.add(clone(id));
+      if(id!=='ct'&&id!=='t')viewModels.add(clone(id,viewLighting));
     }
     world.add(worldModels);view.add(viewModels);
     renderer.compile(world,camera);renderer.compile(view,viewCamera);
@@ -67,10 +67,10 @@ api.setTextureFiltering=function(value){
   const seen=new Set();for(const model of templates.values())model.traverse(o=>{for(const material of o.material?(Array.isArray(o.material)?o.material:[o.material]):[])for(const key of ['map','normalMap','roughnessMap','metalnessMap','aoMap','emissiveMap']){const texture=material[key];if(texture&&!seen.has(texture)){seen.add(texture);if(texture.anisotropy!==value){texture.anisotropy=value;texture.needsUpdate=true;}}}});
 };
 api.gun=function(id,lighting){const model=clone(id,lighting);const box=new THREE.Box3().setFromObject(model);model.userData.assetModel=true;model.userData.muzzle=new THREE.Vector3((box.min.x+box.max.x)/2,(box.min.y+box.max.y)/2,box.min.z);return model;};
-api.view=function(id,flashMaterial,slot){
+api.view=function(id,flashMaterial,slot,lighting){
   const model=new THREE.Group(),source=new THREE.Group();source.rotation.y=Math.PI;model.add(source);
-  const arms=clone('arms');source.add(arms);const pivot=arms.getObjectByName('wpn')||arms;
-  const weapon=sourceWeapon(id,pivot);
+  const arms=clone('arms',lighting);source.add(arms);const pivot=arms.getObjectByName('wpn')||arms;
+  const weapon=sourceWeapon(id,pivot,lighting);
   const mixer=new THREE.AnimationMixer(source),prefix=aliases[id]||id;
   const clips=clipsFor(source,viewClips.filter(c=>c.name.startsWith(prefix+'/'))),actions=new Map(clips.map(c=>[c.name.split('/')[1],mixer.clipAction(c)]));
   const flash=new THREE.Sprite(flashMaterial);flash.scale.set(.18,.18,1);flash.visible=false;model.add(flash);

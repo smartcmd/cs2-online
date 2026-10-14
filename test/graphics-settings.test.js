@@ -16,7 +16,7 @@ test('frame caps hold their target rate without accumulating a render backlog',(
 test('render capping preserves every local input step and total predicted time',()=>{
  function simulate(limit){const steps=[];let draws=0;const noop=()=>{};
   const context=vm.createContext({last:0,lastRender:0,renderedFrames:0,menuT:0,frameClock:new GraphicsSettings.FrameClock(),settings:{gfx:{limit}},requestAnimationFrame:noop,
-   inGame:true,latest:{rd:1,ph:'live',ft:0,rt:100},localStep:dt=>steps.push(dt),renderProfiler:null,
+   lightingPreview:null,inGame:true,latest:{rd:1,ph:'live',ft:0,rt:100},localStep:dt=>steps.push(dt),renderProfiler:null,
    sample:null,sampleAt:noop,serverNow:()=>1,INTERP:.12,audioDirector:{update:noop},sinceSnap:()=>0,bombState:()=> 'none',bInfo:()=>[],P:{alive:true,plantT:0},
    syncRemotes:noop,updateBombAndItems:noop,updateFx:noop,updateCamera:noop,updateViewModel:noop,updateHud:noop,window:{},staticSunShadow:null,
    renderer:{clear:noop,render:()=>draws++},scene:{},cam:{},vm:null});
@@ -26,7 +26,7 @@ test('render capping preserves every local input step and total predicted time',
 });
 test('draw visuals keep source timing while client weapon readiness stays unchanged',()=>{
  const calls=[],P={},W={usp:{slot:2},ak47:{slot:1},awp:{slot:1,scope:true},knife:{melee:true}};
- const context=vm.createContext({cancelReloadSounds(){},vm:null,vmId:null,vScene:{remove(){},add(){}},P,W,lt:10,buildViewModel:()=>({userData:{official:true}}),GameAssets:{dispose(){},playView:(...a)=>calls.push(a)},sfx:{draw(){}}});
+ const context=vm.createContext({cancelReloadSounds(){},vm:null,vmId:null,viewRig:{remove(){},add(){}},P,W,lt:10,buildViewModel:()=>({userData:{official:true}}),GameAssets:{dispose(){},playView:(...a)=>calls.push(a)},sfx:{draw(){}}});
  vm.runInContext(section('function onWeaponView(', 'function localSlot('),context);
  for(const [id,duration]of [['usp',.45],['ak47',.8],['awp',1.1],['knife',.3]]){context.onWeaponView(id);assert.equal(P.drawEnd,10+duration);assert.equal(calls.at(-1)[1],'draw');assert.equal(calls.at(-1).length,2);}
 });

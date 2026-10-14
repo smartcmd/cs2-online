@@ -17,7 +17,9 @@
     "bots:audit": "node scripts/audit-bots.cjs",
     "test:shadows": "node scripts/test-render-gpu.cjs",
     "test:materials": "node scripts/test-source-material-gpu.cjs",
-    "map:size": "node scripts/report-map-transfer.cjs"
+    "map:size": "node scripts/report-map-transfer.cjs",
+    "map:sky": "node scripts/build-sky.cjs",
+    "test:lighting": "node scripts/test-lighting-gpu.cjs"
   },
   "engines": {
     "node": ">=20.9.0"

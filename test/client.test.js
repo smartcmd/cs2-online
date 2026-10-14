@@ -145,7 +145,7 @@ test('a delayed pointer capture cannot trap the cursor after leaving a match', (
 test('a same-weapon respawn resets the draw action without rebuilding the whole model',()=>{
  let builds=0,disposals=0,plays=0;
  const ctx=run(section('function onWeaponView(', 'function localSlot('),{
-  cancelReloadSounds(){},vm:null,vmId:null,vScene:{remove(){},add(){}},P:{team:'CT'},W:{usp:{slot:2},ak47:{slot:1}},lt:0,
+  cancelReloadSounds(){},vm:null,vmId:null,viewRig:{remove(){},add(){}},P:{team:'CT'},W:{usp:{slot:2},ak47:{slot:1}},lt:0,
   buildViewModel:()=>{builds++;return {userData:{official:true}};},GameAssets:{dispose(){disposals++;},playView(){plays++;}},sfx:{draw(){}},
  });
  ctx.onWeaponView('usp');ctx.onWeaponView('usp');assert.equal(builds,1);assert.equal(disposals,0);assert.equal(plays,2);

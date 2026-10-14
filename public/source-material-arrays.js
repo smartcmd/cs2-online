@@ -62,7 +62,7 @@ async function create({THREE,geometry,data,manifest,load,registerTexture,detail,
    side:surface.collidable||surface.doubleSided?THREE.DoubleSide:THREE.FrontSide,transparent:surface.overlay,depthWrite:!surface.overlay,visible:surface.visible,
    polygonOffset:surface.bias,polygonOffsetFactor:-(surface.depthLayer||1),polygonOffsetUnits:-2*(surface.depthLayer||1)});
   if(surface.mask>=0){material.alphaMap=alpha(surface);material.alphaTest=surface.overlay?.02:surface.cutoff;}
-  material.userData.sourceArrays=true;
+  material.userData.sourceArrays=true;material.userData.roughSky=surface.type!==3&&surface.type!==6;
   material.onBeforeCompile=shader=>{
    Object.assign(shader.uniforms,{sourceInfo:{value:infoMap},sourceRows:{value:manifest.materials.length+1},sourceNormals:{value:normalMap},sourceORM:{value:ormMap}});
    for(let i=0;i<5;i++)shader.uniforms['sourceColor'+i]={value:colorMaps[i]};

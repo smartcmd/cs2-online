@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import sharp from 'sharp';
 import detailStyles from './dust2-detail-styles.cjs';
 import {buildSourceMaterials} from './build-source-materials.mjs';
+import skyBuilder from './build-sky.cjs';
 import { MeshoptDecoder } from 'meshoptimizer';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -246,4 +247,5 @@ meta.files=meta.files.filter(file=>!['surface-atlas.webp','dust2-details.gz'].in
 for(const file of sourceMaterialMeta.files)meta.files.push(file);
 const sourceManifest=await fs.readFile(output+'dust2-source-materials.json');meta.files.push({name:'dust2-source-materials.json',bytes:sourceManifest.length,sha256:createHash('sha256').update(sourceManifest).digest('hex')});
 await fs.writeFile(output+'dust2.json',JSON.stringify(meta)+'\n');
+Object.assign(meta,await skyBuilder.build());
 console.timeEnd('Lossless map packaging');console.log(JSON.stringify({sourceTriangles,vertices,groups:groups.length,materials:descriptors.length,files:meta.files,totalMiB:meta.files.reduce((n,f)=>n+f.bytes,0)/1048576},null,2));

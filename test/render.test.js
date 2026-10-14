@@ -68,3 +68,9 @@ test('early colour culling restores all map casters before rebuilding the shadow
  const cache=new StaticSunShadow(THREE,renderer,scene,sun,map);cache.prepare(camera);assert.equal(baked,1);assert.equal(mesh.visible,false);cache.prepare(camera);assert.equal(baked,1);
  sun.shadow.mapSize.set(2048,2048);cache.prepare(camera);assert.equal(baked,2);assert.equal(mesh.visible,false);cache.invalidate();assert.equal(mesh.visible,true);assert.equal(mesh.castShadow,true);
 });
+
+test('static cutout shadows keep exact opacity pixels, channel, wrapping and threshold',()=>{
+ const {alphaDepthMaterial}=require('../public/render-optimizations'),map=new THREE.DataTexture(new Uint8Array([0,255,255,0]),2,2,THREE.RedFormat);map.wrapS=THREE.RepeatWrapping;
+ const material=new THREE.MeshStandardMaterial({alphaMap:map,alphaTest:.5}),depth=alphaDepthMaterial(THREE,material);assert.equal(depth.alphaMap,map);assert.equal(depth.alphaTest,.5);assert.equal(depth.depthPacking,THREE.RGBADepthPacking);assert.equal(alphaDepthMaterial(THREE,material),depth);
+ const shader={fragmentShader:'#include <alphamap_fragment>'};depth.onBeforeCompile(shader);assert.match(shader.fragmentShader,/\.r;/);assert.equal(alphaDepthMaterial(THREE,new THREE.MeshStandardMaterial()),undefined);
+});

@@ -14,12 +14,15 @@ root.RenderProfiler = function(renderer, views, selectView) {
   let activeViews=views,sampleFrames=150;
   let timings={},frameTimings={},slowFrames=[];
   const output=document.createElement('pre');output.id='render-profile';panel.appendChild(output);document.body.appendChild(panel);
+  let clean=false;const cleanButton=document.createElement('button');cleanButton.textContent='隐藏调试界面（H恢复）';panel.insertBefore(cleanButton,output);
+  function toggleClean(){clean=!clean;panel.style.visibility=clean?'hidden':'';const tour=document.getElementById('mapTour');if(tour)tour.style.visibility=clean?'hidden':'';}
+  cleanButton.onclick=toggleClean;addEventListener('keydown',e=>{if(e.code==='KeyH'&&!e.repeat&&e.target.tagName!=='INPUT')toggleClean();});
   downloads.onclick=()=>{const entries=performance.getEntriesByType('resource').filter(r=>r.name.startsWith(location.origin+'/'));const summary={map:{encoded:0,transferred:0,requests:0},actors:{encoded:0,transferred:0,requests:0},runtime:{encoded:0,transferred:0,requests:0}};for(const r of entries){const path=new URL(r.name).pathname,key=path.startsWith('/maps/')?'map':path.startsWith('/game/')?'actors':'runtime';summary[key].encoded+=r.encodedBodySize;summary[key].transferred+=r.transferSize;summary[key].requests++;}output.textContent=JSON.stringify({resources:summary,entries:entries.map(r=>({path:new URL(r.name).pathname,encoded:r.encodedBodySize,transfer:r.transferSize}))},null,2);};
   const gl=renderer.getContext(), ext=renderer.capabilities.isWebGL2?gl.getExtension('EXT_disjoint_timer_query_webgl2'):null;
   const queries=[],results=[];let frame=0,index=-1,frames=[],cpu=[],gpu=[],calls=[],triangles=[],query=null,start=0,previous=0;
   const summary=a=>{const sorted=a.slice().sort((a,b)=>a-b);return a.length?{median:+sorted[Math.floor(a.length*.5)].toFixed(2),p95:+sorted[Math.floor(a.length*.95)].toFixed(2)}:null;};
   const api={running:false,timing(name,ms){if(api.running){(timings[name] ||= []).push(ms);frameTimings[name]=(frameTimings[name]||0)+ms;}},before(now){
-    if(!api.running)return;
+    if(!api.running){renderer.info.reset();return;}
     while(queries.length&&gl.getQueryParameter(queries[0].q,gl.QUERY_RESULT_AVAILABLE)){
       const pending=queries.shift();if(!gl.getParameter(ext.GPU_DISJOINT_EXT)&&pending.index===index&&pending.frame>30)gpu.push(gl.getQueryParameter(pending.q,gl.QUERY_RESULT)/1e6);gl.deleteQuery(pending.q);
     }
@@ -36,6 +39,7 @@ root.RenderProfiler = function(renderer, views, selectView) {
   }};
   function begin(list,motion=false){if(api.running)return;movingRun=motion;activeViews=list;sampleFrames=list.length===1?630:150;results.length=0;index=-1;frame=0;previous=0;output.textContent='测试中：预热 30 帧，'+(sampleFrames-30)+' 帧采样，包含分阶段耗时。';api.running=true;button.disabled=true;}
   button.onclick=()=>begin(views);moving.onclick=()=>begin(views,true);current.onclick=()=>begin([['当前画面',null]]);
+  api.setViewModel=toggle=>{const b=document.createElement('button');b.textContent='预览手部/枪模：关';panel.insertBefore(b,output);b.onclick=()=>{const enabled=!api.previewWeapon;if(toggle(enabled)){api.previewWeapon=enabled;b.textContent='预览手部/枪模：'+(enabled?'开':'关');}};};
   api.setMap=function(map,geometry,materials,cache,scene,camera,sun){
     const compare=document.createElement('button');compare.textContent='检查优化前后画面';panel.insertBefore(compare,output);
     const motion=document.createElement('button');motion.textContent='移动视角遮挡检查';panel.insertBefore(motion,output);
@@ -43,16 +47,12 @@ root.RenderProfiler = function(renderer, views, selectView) {
     function check(moving){
       if(api.running)return;
       compare.disabled=true;button.disabled=true;
-      const T=root.THREE,reference=new T.Group(),chunks=new Map();
-      for(const group of geometry.userData.dust2.meta.groups){if(!chunks.has(group.chunk))chunks.set(group.chunk,[]);chunks.get(group.chunk).push(group);}
-      for(const groups of chunks.values()){
-        const first=groups[0].start,last=groups.at(-1),part=new T.BufferGeometry();
-        for(const [name,attribute] of Object.entries(geometry.attributes))part.setAttribute(name,attribute);
-        part.setIndex(new T.BufferAttribute(geometry.index.array.subarray(first,last.start+last.count),1));
-        for(const group of groups)part.addGroup(group.start-first,group.count,group.materialIndex);
-        const box=new T.Box3(),point=new T.Vector3();for(const vertex of part.index.array)box.expandByPoint(point.fromBufferAttribute(geometry.attributes.position,vertex));
-        part.boundingSphere=box.getBoundingSphere(new T.Sphere());
-        const mesh=new T.Mesh(part,materials);mesh.castShadow=mesh.receiveShadow=true;reference.add(mesh);
+      const T=root.THREE,reference=new T.Group();
+      for(const group of geometry.userData.dust2.meta.groups){
+        const part=new T.BufferGeometry();for(const [name,attribute] of Object.entries(geometry.attributes))part.setAttribute(name,attribute);
+        part.setIndex(new T.BufferAttribute(geometry.index.array.subarray(group.start,group.start+group.count),1));
+        const material=materials[group.materialIndex],mesh=new T.Mesh(part,material);mesh.frustumCulled=false;mesh.castShadow=mesh.receiveShadow=true;
+        mesh.customDepthMaterial=root.RenderOptimizations.alphaDepthMaterial(T,material);reference.add(mesh);
       }
       scene.add(reference);
       const target=new T.WebGLRenderTarget(640,360),a=new Uint8Array(640*360*4),b=new Uint8Array(a.length),checks=[];

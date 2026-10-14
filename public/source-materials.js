@@ -92,7 +92,7 @@ async function create({THREE,geometry,manifest,buffer,opacity,lighting,registerT
   material.map=await load(m.albedo);
   if(detail){material.normalMap=await load(m.normal);material.normalScale.set(m.normalScale??1,m.normalScale??1);material.roughnessMap=material.metalnessMap=await load(m.orm);}
   if(surface.mask>=0){material.alphaMap=alpha(surface);material.alphaTest=surface.overlay?.02:surface.cutoff;}
-  lighting(material,source<0);materials.push(material);
+  material.userData.roughSky=surface.type!==3&&surface.type!==6;lighting(material,source<0);materials.push(material);
  }
  return {...result,materials,textureCount:cache.size};
 }

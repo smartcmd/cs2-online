@@ -38,3 +38,18 @@ test('material warmup compiles both lighting environments without leaving previe
  assert.equal(calls.length,2);assert.equal(world.children.length,0);assert.equal(view.children.length,0);
  const p=api.player('CT',light);api.updatePlayer(p,state(),0,1/60);assert.ok(Number.isFinite(p.action.time));api.dispose(p.g);
 });
+
+test('viewmodel lighting prepares arms and weapons without sharing world-material variants',async()=>{
+ const {createAssets}=require('./helpers/actor-assets.cjs'),THREE=require('three'),assets=await createAssets();let prepared=0;
+ const lighting=m=>{m.userData.viewLighting=true;prepared++;},view=assets.view('usp',new THREE.SpriteMaterial(),2,lighting);
+ let meshes=0;view.traverse(o=>{if(o.isMesh){meshes++;for(const m of Array.isArray(o.material)?o.material:[o.material])assert.equal(m.userData.viewLighting,true);}});assert.ok(prepared>0&&meshes>1);
+ const world=assets.gun('usp');world.traverse(o=>{if(o.isMesh)for(const m of Array.isArray(o.material)?o.material:[o.material])assert.notEqual(m.userData.viewLighting,true);});assets.dispose(view);assets.dispose(world);
+});
+
+test('camera-aligned view rig preserves projected skinned vertices through yaw and pitch changes',async()=>{
+ const api=await ready,lighting=require('../public/lighting'),rig=new THREE.Group(),view=api.view('usp',new THREE.SpriteMaterial(),2),camera=new THREE.PerspectiveCamera(68,16/9,.01,10);rig.add(view);api.updateView(view,0);rig.updateMatrixWorld(true);camera.updateMatrixWorld();
+ let mesh;view.traverse(o=>{if(!mesh&&o.isSkinnedMesh)mesh=o;});assert.ok(mesh);
+ const vertices=[0,Math.floor(mesh.geometry.attributes.position.count/2),mesh.geometry.attributes.position.count-1];
+ const projected=()=>vertices.map(i=>{const p=new THREE.Vector3().fromBufferAttribute(mesh.geometry.attributes.position,i);mesh.boneTransform(i,p);return p.applyMatrix4(mesh.matrixWorld).project(camera);});const initial=projected();
+ for(const yaw of [-2,-.2,1.4]){lighting.orientView(new THREE.Quaternion().setFromEuler(new THREE.Euler(.4,yaw,0,'YXZ')),camera,rig);camera.updateMatrixWorld();rig.updateMatrixWorld(true);const points=projected();points.forEach((p,i)=>assert.ok(p.distanceTo(initial[i])<1e-5));}api.dispose(view);
+});

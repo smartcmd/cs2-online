@@ -13,8 +13,8 @@
  const add=(parent,geo,color,x,y,z)=>{const m=new T.Mesh(geo,new T.MeshStandardMaterial({color,side:T.DoubleSide}));m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;parent.add(m);return m;};
  add(map,new T.BoxGeometry(18,.2,18),0xaaaaaa,0,-.1,0);
  add(map,new T.BoxGeometry(2,4,3),0xba9966,-2,2,-1);
- const cutout=new T.DataTexture(new Uint8Array([0,0,0,255,255,255,255,255,255,255,255,255,0,0,0,255]),2,2);cutout.needsUpdate=true;
- const fence=add(map,new T.BoxGeometry(3,3,.1),0x779966,3,1.5,-2);fence.material.alphaMap=cutout;fence.material.alphaTest=.5;
+ const cutout=new T.DataTexture(new Uint8Array([0,255,255,0]),2,2,r.capabilities.isWebGL2?T.RedFormat:T.LuminanceFormat);cutout.needsUpdate=true;
+ const fence=add(map,new T.PlaneGeometry(3,3),0x779966,3,1.5,-2);fence.material.alphaMap=cutout;fence.material.alphaTest=.5;fence.material.onBeforeCompile=s=>{s.fragmentShader=s.fragmentShader.replace('#include <alphamap_fragment>',T.ShaderChunk.alphamap_fragment.replace('.g;','.r;'));};fence.customDepthMaterial=RenderOptimizations.alphaDepthMaterial(T,fence.material);
  const actor=add(scene,new T.BoxGeometry(.8,2,.8),0x334477,0,1,2);
  const target=new T.WebGLRenderTarget(512,384),a=new Uint8Array(512*384*4),b=new Uint8Array(a.length);
  const cache=new RenderOptimizations.StaticSunShadow(T,r,scene,sun,map),results=[];
@@ -36,9 +36,12 @@
    let dynamicError=0;for(let i=0;i<a.length;i++)dynamicError=Math.max(dynamicError,Math.abs(a[i]-b[i]));results.at(-1).dynamicMaxError=dynamicError;actor.position.z=2;
   }
  }
+ cache.invalidate();r.setRenderTarget(target);r.render(scene,cam);r.readRenderTargetPixels(target,0,0,512,384,a);
+ const correctDepth=fence.customDepthMaterial;fence.customDepthMaterial=undefined;cache.invalidate();r.render(scene,cam);r.readRenderTargetPixels(target,0,0,512,384,b);
+ let cutoutShadowChanges=0;for(let i=0;i<a.length;i++)if(Math.abs(a[i]-b[i])>1)cutoutShadowChanges++;fence.customDepthMaterial=correctDepth;cache.invalidate();
  r.setRenderTarget(null);r.render(scene,cam);
  for(const [label,pixels] of [['Full render',a],['Cached static depth',b]]){const box=document.createElement('div');box.textContent=label;const c=document.createElement('canvas');c.width=512;c.height=384;c.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(pixels),512,384),0,0);box.appendChild(c);document.body.prepend(box);}
- const pass=results.every(x=>x.maxError<=1&&x.dynamicMaxError<=1&&!x.cacheChanged&&x.staticError===0);
- document.getElementById('result').textContent=JSON.stringify({pass,webgl2:r.capabilities.isWebGL2,results},null,2);
+ const pass=cutoutShadowChanges>100&&results.every(x=>x.maxError<=1&&x.dynamicMaxError<=1&&!x.cacheChanged&&x.staticError===0);
+ document.getElementById('result').textContent=JSON.stringify({pass,cutoutShadowChanges,webgl2:r.capabilities.isWebGL2,results},null,2);
 })().catch(e=>{document.getElementById('result').textContent='FAIL '+e.stack;});
 </script>

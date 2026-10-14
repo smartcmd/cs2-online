@@ -422,21 +422,25 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.autoClear = false;
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = .92;
+renderer.toneMappingExposure = MapLighting.look.exposure;
 renderer.domElement.tabIndex = -1;
 $('view').appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 scene.matrixAutoUpdate = false;
-scene.fog = new THREE.Fog(0xd4dfdf, 55, 380);
+scene.fog = new THREE.Fog(new THREE.Color(0xd4dfdf).convertSRGBToLinear(), 80, 420);
 const BASE_FOV = 74;
 const cam = new THREE.PerspectiveCamera(BASE_FOV, innerWidth / innerHeight, 0.05, 500);
 cam.rotation.order = 'YXZ';
 const vScene = new THREE.Scene();
+const viewRig=new THREE.Group();vScene.add(viewRig);
 const vCam = new THREE.PerspectiveCamera(viewPose().fov, innerWidth / innerHeight, 0.01, 10);
 // one light balance for the world and the first-person model
-const SUN_POWER = 2.6, SKY_POWER = 1.0;
-const vHemi = new THREE.HemisphereLight(0xd7e7fa, 0xc8b89e, SKY_POWER); vScene.add(vHemi);
+const SUN_POWER = MapLighting.look.sunPower, SKY_POWER = MapLighting.look.skyPower;
+const SKY_COLOR=new THREE.Color(MapLighting.look.skyColor).convertSRGBToLinear(),GROUND_COLOR=new THREE.Color(MapLighting.look.groundColor).convertSRGBToLinear();
+const vHemi = new THREE.HemisphereLight(SKY_COLOR, GROUND_COLOR, SKY_POWER); vScene.add(vHemi);
 const vSun = new THREE.DirectionalLight(new THREE.Color().fromArray(MapLighting.sunColor), SUN_POWER); vScene.add(vSun);
+const viewMaterials=new Set();let viewReflectionLevel=MapLighting.look.viewReflection;
+const viewLit=material=>{MapLighting.viewMaterial(material,viewMaterials);material.envMapIntensity=viewReflectionLevel;};
 const SUN_DIR = new THREE.Vector3().fromArray(MapLighting.sunDirection), INDOOR_SKY = .38;
 // indoor dimming shared by the map and everything standing on it (players dim less so they stay readable); filled in once the map loads
 const ENV = { coverMap: { value: null }, coverXform: { value: new THREE.Vector4() }, field: null, volume: null, uniforms: { irradianceMap: {value:null}, irradianceOrigin: {value:new THREE.Vector3()}, irradianceSize: {value:new THREE.Vector3()}, irradianceStep: {value:3} } };
@@ -446,11 +450,11 @@ function envLit(material) {
     shader.uniforms.coverMap = ENV.coverMap; shader.uniforms.coverXform = ENV.coverXform;
     shader.vertexShader = 'varying vec3 vEnvPos;\n' + shader.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>\nvEnvPos = (modelMatrix * vec4(transformed, 1.0)).xyz;');
     shader.fragmentShader = MapLighting.glsl + 'varying vec3 vEnvPos;\nuniform sampler2D coverMap;\nuniform vec4 coverXform;\n' + shader.fragmentShader.replace('#include <aomap_fragment>', `#include <aomap_fragment>
-      vec3 environment = max(vec3(.5), mapIrradiance(vEnvPos));
+      vec3 environment = max(vec3(.65), mapIrradiance(vEnvPos));
       reflectedLight.indirectDiffuse *= environment;
       reflectedLight.indirectSpecular *= environment;`);
   };
-  material.envMapIntensity = .35;
+  material.envMapIntensity = MapLighting.look.actorReflection;
   material.customProgramCacheKey = () => 'env-lit-volume';
   return material;
 }
@@ -643,7 +647,7 @@ function buildGun(id) {
 const flashMat = new THREE.SpriteMaterial({ map: texFlash, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true });
 const vFlashMat = new THREE.SpriteMaterial({ map: texFlash, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, transparent: true });
 function buildViewModel(id, team) {
-  if (GameAssets.ready) return GameAssets.view(id, vFlashMat, W[id].slot);
+  if (GameAssets.ready) return GameAssets.view(id, vFlashMat, W[id].slot, viewLit);
   M = vmat;
   const root = new THREE.Group(); const gun = buildGun(id); root.add(gun);
   const sleeve = team === 'CT' ? 0x34445e : 0x8c7552, glove = 0x1e1f21;
@@ -814,31 +818,8 @@ for (const [name, view] of Object.entries(tourPoints)) {
 $('tour').onclick = () => { if (!mapReady) return; mapPreview = tourPoints['A 包点']; $('menu').hidden = true; $('mapTour').hidden = false; };
 $('tourExit').onclick = () => { mapPreview = null; $('menu').hidden = false; $('mapTour').hidden = true; };
 (function buildWorld() {
-  const sky = new THREE.Mesh(new THREE.SphereGeometry(350, 32, 16), new THREE.ShaderMaterial({
-    side: THREE.BackSide, depthWrite: false, fog: false, uniforms: { sunDir: { value: SUN_DIR } },
-    vertexShader: 'varying vec3 vSky; void main(){ vSky=normalize(position); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
-    fragmentShader: `uniform vec3 sunDir; varying vec3 vSky;
-      float cloudHash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
-      float cloudNoise(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
-        return mix(mix(cloudHash(i),cloudHash(i+vec2(1,0)),f.x),mix(cloudHash(i+vec2(0,1)),cloudHash(i+vec2(1,1)),f.x),f.y); }
-      void main(){
-        vec3 d=normalize(vSky); float h=max(d.y,0.0);
-        vec3 c=mix(vec3(.78,.85,.9),vec3(.30,.52,.78),pow(h,.6));
-        c=mix(c,vec3(.8,.79,.75),smoothstep(.03,-.06,d.y));
-        vec2 q=d.xz/(d.y+.12)*1.6+vec2(3.1,7.4), w=vec2(4.,.9);
-        float n=0.0, a=.5; for(int i=0;i<5;i++){ n+=a*cloudNoise(q*w); w*=2.1; a*=.5; }
-        float cloud=smoothstep(.64,.9,n)*smoothstep(.02,.25,d.y)*.23;
-        c=mix(c,vec3(.9,.9,.88),cloud);
-        float s=max(dot(d,sunDir),0.0);
-        c+=vec3(1.,.88,.68)*(pow(s,5.)*.1+pow(s,40.)*.22)+vec3(1.,.97,.9)*smoothstep(.9993,.9996,s);
-        gl_FragColor=vec4(min(c,1.0),1.0);
-      }`,
-  })); sky.renderOrder = 1; scene.add(sky);
-  const reflectionScene = new THREE.Scene(); reflectionScene.add(sky.clone());
-  const pmrem = new THREE.PMREMGenerator(renderer), environment = pmrem.fromScene(reflectionScene, 0);
-  scene.environment = vScene.environment = environment.texture; pmrem.dispose();
   // soft sky from above, warm sand bounce from below; the lighting map dims this indoors and in corners
-  scene.add(new THREE.HemisphereLight(0xd7e7fa, 0xc8b89e, SKY_POWER));
+  scene.add(new THREE.HemisphereLight(SKY_COLOR, GROUND_COLOR, SKY_POWER));
   const sun = new THREE.DirectionalLight(new THREE.Color().fromArray(MapLighting.sunColor), SUN_POWER);
   sun.position.copy(SUN_DIR).multiplyScalar(100).add(new THREE.Vector3(-5, 0, -25)); sun.target.position.set(-5, 0, -25);
   sun.castShadow = settings.gfx.shadow !== '0'; sun.shadow.mapSize.set(GraphicsSettings.shadowSize(settings.gfx.shadow), GraphicsSettings.shadowSize(settings.gfx.shadow));
@@ -848,6 +829,7 @@ $('tourExit').onclick = () => { mapPreview = null; $('menu').hidden = false; $('
   fetch('/maps/dust2.json', { cache: 'no-cache' }).then(async response => {
     if (!response.ok) throw new Error('地图信息缺失');
     const meta = await response.json(), file = meta.files.find(f => f.name === 'dust2.mesh.gz');
+    await MapLighting.installSky(THREE,renderer,scene,vScene,meta);
     const sourceInfo=meta.files.find(f=>f.name==='dust2-source-materials.json');
     const sourceResponse=await fetch('/maps/dust2-source-materials.json?v='+sourceInfo.sha256.slice(0,12));if(!sourceResponse.ok)throw Error('源材质清单缺失');
     const sourceManifest=await sourceResponse.json();
@@ -939,11 +921,12 @@ $('tourExit').onclick = () => { mapPreview = null; $('menu').hidden = false; $('
     const coverXform = new THREE.Vector4(gb.min.x - CELL / 2, gb.min.z - CELL / 2, 1 / (coverW * CELL), 1 / (coverH * CELL));
     ENV.coverMap.value = coverMap; ENV.coverXform.value.copy(coverXform);
     ENV.field = { roof, w: coverW, h: coverH, x0: gb.min.x, z0: gb.min.z, cell: CELL };
+    const skyDiffuse=new Float32Array(meta.sky.diffuse.flat()),fullSkyProbe=new URLSearchParams(location.search).has('fullSkyProbe');
     const sourceLit=material=>{
-      material.envMapIntensity=.22;
+      material.envMapIntensity=MapLighting.look.mapReflection;
       const previousCompile=material.onBeforeCompile;
       material.onBeforeCompile=shader=>{
-        previousCompile(shader);
+        previousCompile(shader);if(!fullSkyProbe)MapLighting.mapEnvironment(THREE,shader,skyDiffuse,material.userData.roughSky);
         Object.assign(shader.uniforms,ENV.uniforms);shader.uniforms.coverMap={value:coverMap};shader.uniforms.coverXform={value:coverXform};shader.uniforms.surfaceDetail=surfaceDetail;
         shader.vertexShader='varying vec3 vSourcePosition;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvSourcePosition=(modelMatrix*vec4(position,1.)).xyz;');
         shader.fragmentShader=MapLighting.glsl+'varying vec3 vSourcePosition; uniform sampler2D coverMap; uniform vec4 coverXform; uniform float surfaceDetail;\n'+shader.fragmentShader;
@@ -958,7 +941,7 @@ $('tourExit').onclick = () => { mapPreview = null; $('menu').hidden = false; $('
         shader.fragmentShader=shader.fragmentShader.replace('#include <alphamap_fragment>',THREE.ShaderChunk.alphamap_fragment.replace('.g;', '.r;'));
         shader.fragmentShader=shader.fragmentShader.replace('#include <normal_fragment_maps>',THREE.ShaderChunk.normal_fragment_maps.replace('mapN.xy *= normalScale;','mapN.xy *= normalScale * surfaceDetail;'));
       };
-      material.customProgramCacheKey=()=> 'dust2-source-lit-v2-'+!!material.userData.sourceArrays;
+      material.customProgramCacheKey=()=> 'dust2-source-lit-v3-'+!!material.userData.sourceArrays+'-'+!!material.userData.roughSky+'-'+fullSkyProbe;
     };
     const sourceSurfaces=await SourceMaterials.create({THREE,geometry,manifest:sourceManifest,buffer:sourceBuffer,opacity,lighting:sourceLit,registerTexture,detail:materialMode==='detail',isWebGL2:renderer.capabilities.isWebGL2,compact:settings.gfx.texture!=='full',progress:(done,total)=>mapProgress(.97,'载入原版轻量材质 '+done+' / '+total)});
     loadedSourceDetails=materialMode==='detail';loadedTexturePrecision=settings.gfx.texture;
@@ -986,7 +969,7 @@ $('tourExit').onclick = () => { mapPreview = null; $('menu').hidden = false; $('
     renderProfiler?.setMap(map, renderGeometry, materials, staticSunShadow, scene, cam, sun);
     mapProgress(.99, '正在准备地图与人物材质…'); await nextFrame();
     map.userData.restoreVisibility?.();
-    GameAssets.precompile(renderer, scene, cam, vScene, vCam, envLit);
+    GameAssets.precompile(renderer, scene, cam, vScene, vCam, envLit, viewLit);
     staticSunShadow.prepare(cam);
     sun.shadow.needsUpdate = true; mapReady = true; $('start').disabled = false; $('start').textContent = '进入沙二'; $('tour').disabled = false;
     mapProgress(1, `沙二原地图结构 · 原版轻量材质已载入`);
@@ -1158,9 +1141,9 @@ function localReload() {
 function onWeaponView(id) {
   cancelReloadSounds();
   if (!vm || id !== vmId) {
-    if (vm) { vScene.remove(vm); if (vm.userData.official) GameAssets.dispose(vm); vm = null; }
+    if (vm) { viewRig.remove(vm); if (vm.userData.official) GameAssets.dispose(vm); vm = null; }
     vmId = id; if (!id) return;
-    vm = buildViewModel(id, P.team); vScene.add(vm);
+    vm = buildViewModel(id, P.team); viewRig.add(vm);
   }
   if (!id) return;
   const d = W[id]; P.drawDur = d.melee ? .3 : d.scope ? 1.1 : d.slot === 2 ? .45 : .8; P.drawEnd = lt + P.drawDur; P.reloadEnd = 0; GameAssets.playView(vm, 'draw'); sfx.draw(id);
@@ -1249,7 +1232,7 @@ function clearWorldState() {
   for (const r of remotes.values()) { scene.remove(r.m.g); if (r.m.official) GameAssets.dispose(r.m.g); } remotes.clear();
   for (const m of itemMeshes.values()) { scene.remove(m); if (m.userData.assetModel) GameAssets.dispose(m); } itemMeshes.clear();
   bombMesh.visible = false; clearFx(); snaps = []; latest = null; me = null; timeOffset = null; pending.length = 0; outbox = [];
-  if (vm) { vScene.remove(vm); if (vm.userData.official) GameAssets.dispose(vm); vm = null; vmId = null; } lastTp = -1; P.alive = false;
+  if (vm) { viewRig.remove(vm); if (vm.userData.official) GameAssets.dispose(vm); vm = null; vmId = null; } lastTp = -1; P.alive = false;
 }
 
 // ---------- server events ----------
@@ -1631,10 +1614,9 @@ function updateCamera(dt) {
     else { cam.position.set(P.pos.x, cam.position.y + (P.pos.y + 3 - cam.position.y) * Math.min(1, dt * 2), P.pos.z); cam.rotation.x += (-.5 - cam.rotation.x) * Math.min(1, dt * 2); }
   }
 }
-const vLight = { sun: 1, sky: 1 }, vInv = new THREE.Quaternion();
-function updateViewModel(dt) {
-  const show = P.alive && zoomLevel === 0 && vm;
-  if (!vm) return; vm.visible = !!show; if (!show) return;
+const vLight = { sun: 1, sky: 1 };
+const viewProbeCache={position:new THREE.Vector3(Infinity,Infinity,Infinity),sample:null},viewBounceDirection=new THREE.Vector3(0,1,0),viewSunColor=new THREE.Color().fromArray(MapLighting.sunColor);
+function updateViewLighting(dt){
   // the first-person model lives in its own scene, so bring the light at the eye over to it
   const eye = cam.position, f = ENV.field;
   let sky = 1;
@@ -1643,10 +1625,22 @@ function updateViewModel(dt) {
     if (i >= 0 && j >= 0 && i < f.w && j < f.h) { const t = clamp((f.roof[j * f.w + i] - eye.y + .2) / 1.4, 0, 1); sky = 1 - t * t * (3 - 2 * t) * (1 - INDOOR_SKY); }
   }
   const sunlit = Sim.World.raycast([eye.x, eye.y, eye.z], [SUN_DIR.x, SUN_DIR.y, SUN_DIR.z], 200) ? 0 : 1;
-  if (ENV.volume) { const light = MapLighting.sample(ENV.volume, eye.toArray()); sky = .35 + .65 * Math.sqrt(light[0]) + .2 * light[1]; }
+  if(ENV.volume){
+    if(!viewProbeCache.sample||viewProbeCache.position.distanceToSquared(eye)>.25){viewProbeCache.position.copy(eye);viewProbeCache.sample=MapLighting.viewProbe(ENV.volume,eye.toArray());viewBounceDirection.fromArray(viewProbeCache.sample.direction);}
+    const light=viewProbeCache.sample.light;sky=.35+.65*Math.sqrt(light[0])+.2*light[1];
+  }
   vLight.sun += (sunlit - vLight.sun) * Math.min(1, dt * 8); vLight.sky += (sky - vLight.sky) * Math.min(1, dt * 4);
-  vSun.intensity = SUN_POWER * vLight.sun; vHemi.intensity = SKY_POWER * vLight.sky;
-  vInv.copy(cam.quaternion).invert(); vSun.position.copy(SUN_DIR).applyQuaternion(vInv); vHemi.position.copy(UP).applyQuaternion(vInv);
+  vSun.intensity=SUN_POWER*(MapLighting.look.viewBounce*vLight.sky+(1-MapLighting.look.viewBounce)*vLight.sun);vSun.color.copy(SKY_COLOR).lerp(viewSunColor,vLight.sun);
+  vHemi.intensity=SKY_POWER*vLight.sky*(.9+.1*vLight.sun);
+  MapLighting.orientView(cam.quaternion,vCam,viewRig);
+  const reflection=MapLighting.look.viewReflection*Math.max(.4,vLight.sky);
+  if(Math.abs(reflection-viewReflectionLevel)>.00001){viewReflectionLevel=reflection;for(const material of viewMaterials)material.envMapIntensity=reflection;}
+  vSun.position.copy(viewBounceDirection).lerp(SUN_DIR,vLight.sun).normalize();vHemi.position.copy(UP);
+}
+function updateViewModel(dt) {
+  const show = P.alive && zoomLevel === 0 && vm;
+  if (!vm) return; vm.visible = !!show; if (!show) return;
+  updateViewLighting(dt);
   if (vm.userData.official) GameAssets.updateView(vm, dt);
   const native = vm.userData.official, slot = vm.userData.slot, w = P.weapons[P.slot];
   const base = native ? viewPose().offset : slot === 2 ? [.2, -.21, -.52] : slot === 3 ? [.24, -.24, -.45] : slot === 5 ? [.14, -.26, -.5] : w && w.def.scope ? [.26, -.27, -.6] : [.26, -.25, -.56];
@@ -1748,6 +1742,13 @@ if (matchMedia('(pointer: coarse)').matches && !matchMedia('(pointer: fine)').ma
 let last = performance.now(), lastRender = last, menuT = 0, renderedFrames = 0;
 const frameClock = new GraphicsSettings.FrameClock();
 const renderProfiler = RenderProfiler(renderer, Object.entries(tourPoints), view => { mapPreview=view; $('menu').hidden=true; $('mapTour').hidden=false; });
+let lightingPreview=null;
+renderProfiler?.setViewModel(enabled=>{
+ if(!mapReady)return false;
+ if(enabled){lightingPreview=buildViewModel('usp','CT');lightingPreview.position.fromArray(viewPose().offset);viewRig.add(lightingPreview);}
+ else if(lightingPreview){viewRig.remove(lightingPreview);GameAssets.dispose(lightingPreview);lightingPreview=null;}
+ return true;
+});
 function frame(nowMs) {
   requestAnimationFrame(frame);
   const raw = Math.min(.25, (nowMs - last) / 1000); last = nowMs;
@@ -1778,7 +1779,9 @@ function frame(nowMs) {
   if (window.SUN) window.SUN.shadow.autoUpdate = inGame || !mapReady || !!renderProfiler?.running;
   const renderStart=renderProfiler?.running?performance.now():0;
   staticSunShadow?.prepare(cam);
+  if(lightingPreview)lightingPreview.visible=!inGame&&!!renderProfiler?.previewWeapon;
   renderer.clear(); renderer.render(scene, cam);
+  if(lightingPreview?.visible){updateViewLighting(1);GameAssets.updateView(lightingPreview,0);renderer.clearDepth();renderer.render(vScene,vCam);}
   if (inGame && vm && vm.visible) { renderer.clearDepth(); renderer.render(vScene, vCam); }
   if(renderStart)renderProfiler.timing('render',performance.now()-renderStart);
   renderedFrames++;

@@ -1,5 +1,17 @@
 (function(root) {
 'use strict';
+// Three r128 does not copy alpha maps into its default shadow-depth materials.
+const alphaDepths=new WeakMap();
+function alphaDepthMaterial(THREE,material){
+  if(!material.alphaMap||!(material.alphaTest>0))return undefined;
+  if(!alphaDepths.has(material)){
+    const depth=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,alphaMap:material.alphaMap,alphaTest:material.alphaTest});
+    const red=material.alphaMap.format===THREE.RedFormat||material.alphaMap.format===THREE.LuminanceFormat;
+    if(red)depth.onBeforeCompile=shader=>{shader.fragmentShader=shader.fragmentShader.replace('#include <alphamap_fragment>',THREE.ShaderChunk.alphamap_fragment.replace('.g;','.r;'));};
+    depth.customProgramCacheKey=()=> 'map-alpha-depth-'+red;alphaDepths.set(material,depth);
+  }
+  return alphaDepths.get(material);
+}
 // Keep source buffers intact. Each material region has its own bounds so a distant
 // part of a spatial chunk cannot pull all of that chunk into the camera frustum.
 function mapMeshes(THREE, geometry, materials) {
@@ -24,6 +36,7 @@ function mapMeshes(THREE, geometry, materials) {
     const mesh=new THREE.Mesh(part,materials[group.materialIndex]);
     mesh.name='Dust II region '+group.chunk+'/'+group.materialIndex;
     mesh.castShadow=mesh.receiveShadow=true;
+    mesh.customDepthMaterial=alphaDepthMaterial(THREE,materials[group.materialIndex]);
     // Map vertices and collision data already use world coordinates; this static root stays at identity.
     const bounds=box.clone().expandByScalar(.00001),sphere=part.boundingSphere;
     mesh.userData.inFrustum=frustum=>frustum.intersectsSphere(sphere)&&frustum.intersectsBox(bounds);
@@ -111,6 +124,6 @@ class StaticSunShadow {
     }
   }
 }
-const api={mapMeshes,StaticSunShadow};
+const api={mapMeshes,StaticSunShadow,alphaDepthMaterial};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.RenderOptimizations=api;
 })(typeof window!=='undefined'?window:globalThis);

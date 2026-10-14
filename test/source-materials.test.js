@@ -32,7 +32,7 @@ test('source textures use tiered resolutions and explicit colour/normal/ORM conv
  assert.ok(manifest.materials.some(m=>m.names.includes('dust_windows_01')));
 });
 test('both material packages include mappings and fit the 50 MiB target without counting unused legacy surfaces',()=>{
- const shared=meta.files.filter(f=>!f.kind||f.kind==='mapping').reduce((n,f)=>n+f.bytes,0),runtime=zlib.gzipSync(fs.readFileSync(require.resolve('../public/source-materials.js'))).length;
+ const shared=meta.files.filter(f=>!f.kind||f.kind==='mapping'||f.kind==='sky').reduce((n,f)=>n+f.bytes,0),runtime=zlib.gzipSync(fs.readFileSync(require.resolve('../public/source-materials.js'))).length;
  for(const variant of Object.values(manifest.variants))assert.ok(shared+variant.textures+runtime<50*1048576);
  assert.ok(!meta.files.some(f=>['surface-atlas.webp','dust2-details.gz'].includes(f.name)));
 });

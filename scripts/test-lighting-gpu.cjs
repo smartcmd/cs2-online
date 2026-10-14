@@ -1,0 +1,4 @@
+'use strict';
+const fs=require('node:fs'),http=require('node:http'),path=require('node:path'),root=path.join(__dirname,'..');
+const files={'/':['test/fixtures/lighting-environment-gpu.html','text/html'],'/three.min.js':[require.resolve('three/build/three.min.js'),'text/javascript'],'/lighting.js':['public/lighting.js','text/javascript'],'/maps/dust2.json':['public/maps/dust2.json','application/json']};for(const name of require('../public/maps/dust2.json').sky.files)files['/maps/'+name]=['public/maps/'+name,'image/webp'];
+http.createServer((req,res)=>{const f=files[req.url.split('?')[0]];if(!f){res.writeHead(404);return res.end();}res.setHeader('Content-Type',f[1]);fs.createReadStream(path.resolve(root,f[0])).pipe(res);}).listen(8093,'127.0.0.1',()=>console.log('Lighting GPU fixture: http://localhost:8093/'));
